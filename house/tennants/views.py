@@ -18,21 +18,6 @@ from django.contrib.auth import authenticate, login
 
 logger = logging.getLogger(__name__)
 
-# # Views for the Admin Dashboard and Tenant Management
-# class AdminDashboardView(generics.GenericAPIView):
-#     permission_classes = [IsAuthenticated]
-    
-#     def get(self, request, *args, **kwargs):
-#         total_tenants = Tennant.objects.count()
-#         total_houses = House.objects.count()
-#         total_payments = RentPayment.objects.filter(is_paid=True).count()
-#         context = {
-#             'total_tenants': total_tenants,
-#             'total_houses': total_houses,
-#             'total_payments': total_payments,
-#         }
-#         return render(request, 'admin_dashboard.html', context)
-
 # Tenant Management Views
 class TenantListView(generics.ListCreateAPIView):
     queryset = Tennant.objects.all()

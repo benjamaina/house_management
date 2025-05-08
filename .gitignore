@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+
+# Django
+db.sqlite3
+/media/
+*.log
+
+# Virtual environments
+venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/build/
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+.env
+venv/
+web-venv/
+
+# Node / React
+frontend/node_modules/
+frontend/.next/
+frontend/build/
+.DS_Store

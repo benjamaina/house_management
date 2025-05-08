@@ -7,35 +7,39 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers, generics
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Tennant, House, RentPayment
-from .serializers import TennantSerializer, HouseSerializer,RentPaymentSerializer
+from .models import Tennant, House, RentPayment,FlatBuilding
+from .serializers import TennantSerializer, HouseSerializer,RentPaymentSerializer, AdminLoginSerializer,RegisterAdminSerializer,FlatBuildingSerializer,RentPaymentSerializer
 import logging
 import requests
 from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.core.cache import cache
+from django.core.exceptions import ValidationError
+from rest_framework.decorators import permission_classes
+
+from django.contrib.auth.models import User
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status, permissions
+from rest_framework.exceptions import PermissionDenied
+from rest_framework_simplejwt.tokens import RefreshToken
+
+# import allowany
+
 
 logger = logging.getLogger(__name__)
 
-# # Views for the Admin Dashboard and Tenant Management
-# class AdminDashboardView(generics.GenericAPIView):
-#     permission_classes = [IsAuthenticated]
-    
-#     def get(self, request, *args, **kwargs):
-#         total_tenants = Tennant.objects.count()
-#         total_houses = House.objects.count()
-#         total_payments = RentPayment.objects.filter(is_paid=True).count()
-#         context = {
-#             'total_tenants': total_tenants,
-#             'total_houses': total_houses,
-#             'total_payments': total_payments,
-#         }
-#         return render(request, 'admin_dashboard.html', context)
-
-# Tenant Management Views
-class TenantListView(generics.ListCreateAPIView):
+class TenantDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Tennant.objects.all()
+    serializer_class = TennantSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class TenantListView(generics.ListCreateAPIView):
+    queryset = Tennant.objects.all().order_by('id')
     serializer_class = TennantSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -47,58 +51,176 @@ class TenantListView(generics.ListCreateAPIView):
         if house.tennants.count() >= house.flat_building.number_of_houses:
             logger.error('House is full')
             raise serializers.ValidationError('House is full')
-        tenant = serializer.save()
+        tenant = serializer.save(user =self.request.user)
+        return tenant
 
-        try:
-            house.assign_tenant_to_house(tenant)
-        except ValidationError as e:
-            logger.error(str(e))
-            raise serializers.ValidationError(str(e))
+    def get_queryset(self):
+        return Tennant.objects.filter(is_active=True).order_by('id')
 
-class TenantDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Tennant.objects.all()
-    serializer_class = TennantSerializer
-    permission_classes = [IsAuthenticated]
-
-# House Management Views
-class HouseListView(generics.ListCreateAPIView):
-    queryset = House.objects.all()
-    serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]
-
-class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = House.objects.all()
-    serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]
-
-# Rent Payment Views
 class RentPaymentListView(generics.ListCreateAPIView):
-    queryset = RentPayment.objects.all()
+    queryset = RentPayment.objects.all().order_by('id')
     serializer_class = RentPaymentSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        tennant = serializer.validated_data['tennant']
+        rent_payment = serializer.save(user=self.request.user)
+
+        if rent_payment.is_paid:
+            tennant.balance -= rent_payment.amount
+            tennant.save()
+
+        return rent_payment
+
+    def get_queryset(self):
+        return RentPayment.objects.filter(is_paid=True).order_by('id')
 
 class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = RentPayment.objects.all()
     serializer_class = RentPaymentSerializer
     permission_classes = [IsAuthenticated]
 
-# # Custom Login View
-# @csrf_exempt
-# def custom_login(request):
-#     if request.method == "POST":
-#         username = request.POST.get("username")
-#         password = request.POST.get("password")
-#         user = authenticate(request, username=username, password=password)
-#         if user is not None:
-#             login(request, user)
-#             next_url = request.GET.get('next', '/admin/')  # Redirect to the next URL if provided, otherwise to the dashboard 
-#             return redirect(next_url)  # Redirect to a dashboard or home page
-#         else:
-#             return render(request, "login.html", {"error": "Invalid credentials"})
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        tennant_id = self.request.query_params.get('tennant_id')
+        if tennant_id:
+            queryset = queryset.filter(tennant_id=tennant_id)
+        return queryset
 
-#     return render(request, "login.html")
 
-# MPesa Payment API Integration
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def admin_login(request):
+    logger.debug(f"Admin login attempt with data: {request.data}")
+    serializer = AdminLoginSerializer(data=request.data)  # Consistent with 'serializer'
+    if serializer.is_valid():
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+
+        logger.debug(f"Attempting to authenticate user: {username}")
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            refresh = RefreshToken.for_user(user)
+            access_token = refresh.access_token  # Fixed typo
+
+            return Response({
+                "message": "Login successful",
+                "access_token": str(access_token),  # Return correct access token
+                "refresh_token": str(refresh),
+            }, status=status.HTTP_200_OK)
+        else:
+            logger.debug(f"Authentication failed for user: {username}")
+            return Response({
+                "message": "Invalid credentials or not a superuser",
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    else:
+        logger.debug(f"Serializer errors: {serializer.errors}")
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+ 
+class RegisterAdminView(APIView):
+    permission_classes = [permissions.AllowAny]  # You can lock this down later
+
+    def post(self, request):
+        serializer = RegisterAdminSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
+            email = serializer.validated_data.get('email', '')
+
+            try:
+                User.objects.create_superuser(username=username, password=password, email=email)
+                return Response({"message": "Admin registered successfully."}, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class AdminLogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Blacklist the refresh token
+            RefreshToken(request.data['refresh_token']).blacklist()
+            return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+class HouseListView(generics.ListCreateAPIView):
+
+    queryset = House.objects.all().order_by('id')
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+    ordering_fields = ['house_num', 'house_size', 'house_rent_amount']
+
+    def perform_create(self, serializer):
+        flat_building = serializer.validated_data['flat_building']
+        if flat_building.houses.count() >= flat_building.number_of_houses:
+            logger.error('FlatBuilding is full')
+            raise serializers.ValidationError('FlatBuilding is full')
+        house = serializer.save(user=self.request.user)
+        return house
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        flat_building_id = self.request.query_params.get('flat_building_id')
+        if flat_building_id:
+            queryset = queryset.filter(flat_building_id=flat_building_id)
+        return queryset
+
+class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = House.objects.all()
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        flat_building_id = self.request.query_params.get('flat_building_id')
+        if flat_building_id:
+            queryset = queryset.filter(flat_building_id=flat_building_id)
+        return queryset 
+
+class FlatBuildingListView(generics.ListCreateAPIView):
+    queryset = FlatBuilding.objects.all().order_by('id')
+    serializer_class = FlatBuildingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        flat_building = serializer.save(user=self.request.user)
+        return flat_building
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset
+
+class FlatBuildingDetailView(generics.DestroyAPIView):
+    queryset = FlatBuilding.objects.all()
+    serializer_class = FlatBuildingSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk' 
+    
+    def get_object(self):
+        pk = self.kwargs.get('pk')
+        if pk:
+            return super().get_object()  
+        return FlatBuilding()
+    
+    def destroy(self, request, *args, **kwargs):
+        flat_building = self.get_object()
+        if flat_building.houses.exists():
+            return Response({"message": "Cannot delete FlatBuilding with existing houses."}, status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+        return queryset
+
+
 @api_view(['POST'])
 def mpesa_payment_notification(request):
     logger.info(f"Received data: {request.data}")
@@ -128,7 +250,10 @@ def mpesa_payment_notification(request):
 def mpesa_payment(request):
     if request.method == "POST":
         tenant_id = request.POST.get('tenant_id')
-        tenant = Tennant.objects.get(id=tenant_id)
+        try:
+            tenant = Tennant.objects.get(id=tenant_id)
+        except Tennant.DoesNotExist:
+            return JsonResponse({"message": "Tenant not found"}, status=404)
         rent_amount = tenant.house.house_rent_amount
 
         mpesa_url = "https://sandbox.safaricom.co.ke/mpesa/lnmo/paymentrequest"

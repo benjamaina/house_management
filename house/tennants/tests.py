@@ -1,25 +1,18 @@
 from django.test import TestCase
-from .models import Tennant, House
+from django.core.cache import cache
+from tennants.models import FlatBuilding
 
-class TennantModelTest(TestCase):
+class FlatBuildingCacheTest(TestCase):
     def setUp(self):
-        # Create a House instance
-        self.house = House.objects.create(
-            address="123 Main St",
-            house_num=1,
-            house_size="Medium",
-            house_rent_amount=1500.00,
-            occupation=False,
-        )
+        self.flat = FlatBuilding.objects.create(name="Test Flats", address="123 Street", number_of_houses=10)
 
-        # Create a Tennant instance associated with the house
-        self.tennant = Tennant.objects.create(
-            name="John Doe",
-            phone="1234567890",
-            email="john@example.com",
-            rent_due_date="2025-01-31",
-            house=self.house,  # Associate the tennant with the house
-        )
+    def test_cache_storage(self):
+        # Ensure cache is empty initially
+        self.assertIsNone(cache.get(f"flat_{self.flat.pk}_occupied"))
 
-    def test_tennant_str(self):
-        self.assertEqual(str(self.tennant), "John Doe")
+        # Update house counts, which should set cache
+        self.flat.update_house_counts()
+
+        # Check if values are now cached
+        self.assertIsNotNone(cache.get(f"flat_{self.flat.pk}_occupied"))
+        self.assertIsNotNone(cache.get(f"flat_{self.flat.pk}_vacant"))

@@ -51,7 +51,7 @@ class TennantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tennant
         fields = ['id','name', 'phone', 'balance', 'id_number', 'house', 'is_active', 'outstanding_rent',"user"]
-        read_only_fields = ['balance', 'outstanding_rent']
+        read_only_fields = ['balance', 'outstanding_rent',"user"]
 
     def get_outstanding_rent(self, obj):
         return obj.outstanding_rent()

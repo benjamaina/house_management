@@ -37,6 +37,19 @@ class TenantDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TennantSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        house_id = self.request.query_params.get('house_id')
+        if house_id:
+            queryset = queryset.filter(house_id=house_id, user=self.request.user)
+        return queryset
+    
+    def get_object(self):
+        obj = super().get_object()
+        if obj.user != self.request.user:
+            raise PermissionDenied("You do not have permission to access this resource.")
+        return obj
+
 
 class TenantListView(generics.ListCreateAPIView):
     queryset = Tennant.objects.all().order_by('id')
@@ -55,7 +68,55 @@ class TenantListView(generics.ListCreateAPIView):
         return tenant
 
     def get_queryset(self):
-        return Tennant.objects.filter(is_active=True).order_by('id')
+        return Tennant.objects.filter(is_active=True,user=self.request.user).order_by('id')
+
+
+class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = House.objects.all()
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk'
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.user != self.request.user:
+            raise PermissionDenied("You do not have permission to access this resource.")
+        return obj
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        flat_building_id = self.request.query_params.get('flat_building_id')
+        if flat_building_id:
+            queryset = queryset.filter(flat_building_id=flat_building_id, user=self.request.user).order_by('id')
+        return queryset 
+            
+class HouseListView(generics.ListCreateAPIView):
+
+    queryset = House.objects.all().order_by('id')
+    serializer_class = HouseSerializer
+    permission_classes = [IsAuthenticated]
+    ordering_fields = ['house_num', 'house_size', 'house_rent_amount']
+
+    def perform_create(self, serializer):
+        flat_building = serializer.validated_data['flat_building']
+        if flat_building.houses.count() >= flat_building.number_of_houses:
+            logger.error('FlatBuilding is full')
+            raise serializers.ValidationError('FlatBuilding is full')
+        house = serializer.save(user=self.request.user)
+        return house
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        flat_building_id = self.request.query_params.get('flat_building_id')
+        if flat_building_id:
+            queryset = queryset.filter(flat_building_id=flat_building_id, user=self.request.user).order_by('id')
+        return queryset
+
+    def get_queryset(self):
+        return House.objects.filter(user=self.request.user).order_by('id')
 
 class RentPaymentListView(generics.ListCreateAPIView):
     queryset = RentPayment.objects.all().order_by('id')
@@ -73,7 +134,7 @@ class RentPaymentListView(generics.ListCreateAPIView):
         return rent_payment
 
     def get_queryset(self):
-        return RentPayment.objects.filter(is_paid=True).order_by('id')
+        return RentPayment.objects.filter(is_paid=True, user=self.request.user).order_by('id')
 
 class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = RentPayment.objects.all()
@@ -84,9 +145,68 @@ class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
         queryset = super().get_queryset()
         tennant_id = self.request.query_params.get('tennant_id')
         if tennant_id:
-            queryset = queryset.filter(tennant_id=tennant_id)
+            queryset = queryset.filter(tennant_id=tennant_id, user=self.request.user)
         return queryset
 
+
+    def get_object(self):
+        obj = super().get_object()
+        if obj.user != self.request.user:
+            raise PermissionDenied("You do not have permission to access this resource.")
+        return obj
+
+
+class FlatBuildingListView(generics.ListCreateAPIView):
+    queryset = FlatBuilding.objects.all().order_by('id')
+    serializer_class = FlatBuildingSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        flat_building = serializer.save(user=self.request.user)
+        return flat_building
+
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__icontains=name, user=self.request.user).order_by('id')
+        return queryset
+
+
+    def get_queryset(self):
+        return FlatBuilding.objects.filter(user=self.request.user).order_by('id')
+
+
+class FlatBuildingDetailView(generics.DestroyAPIView):
+    queryset = FlatBuilding.objects.all()
+    serializer_class = FlatBuildingSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'pk' 
+    
+
+    def get_object(self):
+        pk = self.kwargs.get('pk')
+        if pk:
+            return super().get_object()  
+        return FlatBuilding()
+    
+    def destroy(self, request, *args, **kwargs):
+        flat_building = self.get_object()
+        if flat_building.houses.exists():
+            return Response({"message": "Cannot delete FlatBuilding with existing houses."}, status=status.HTTP_400_BAD_REQUEST)
+        return super().destroy(request, *args, **kwargs)
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__icontains=name, user=self.request.user).order_by('id')
+        return queryset
+
+    def perform_create(self, serializer):
+        flat_building = serializer.save(user=self.request.user)
+        return flat_building
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -144,81 +264,6 @@ class AdminLogoutView(APIView):
             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-class HouseListView(generics.ListCreateAPIView):
-
-    queryset = House.objects.all().order_by('id')
-    serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]
-    ordering_fields = ['house_num', 'house_size', 'house_rent_amount']
-
-    def perform_create(self, serializer):
-        flat_building = serializer.validated_data['flat_building']
-        if flat_building.houses.count() >= flat_building.number_of_houses:
-            logger.error('FlatBuilding is full')
-            raise serializers.ValidationError('FlatBuilding is full')
-        house = serializer.save(user=self.request.user)
-        return house
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        flat_building_id = self.request.query_params.get('flat_building_id')
-        if flat_building_id:
-            queryset = queryset.filter(flat_building_id=flat_building_id)
-        return queryset
-
-class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = House.objects.all()
-    serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'pk'
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        flat_building_id = self.request.query_params.get('flat_building_id')
-        if flat_building_id:
-            queryset = queryset.filter(flat_building_id=flat_building_id)
-        return queryset 
-
-class FlatBuildingListView(generics.ListCreateAPIView):
-    queryset = FlatBuilding.objects.all().order_by('id')
-    serializer_class = FlatBuildingSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_create(self, serializer):
-        flat_building = serializer.save(user=self.request.user)
-        return flat_building
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        return queryset
-
-class FlatBuildingDetailView(generics.DestroyAPIView):
-    queryset = FlatBuilding.objects.all()
-    serializer_class = FlatBuildingSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'pk' 
-    
-    def get_object(self):
-        pk = self.kwargs.get('pk')
-        if pk:
-            return super().get_object()  
-        return FlatBuilding()
-    
-    def destroy(self, request, *args, **kwargs):
-        flat_building = self.get_object()
-        if flat_building.houses.exists():
-            return Response({"message": "Cannot delete FlatBuilding with existing houses."}, status=status.HTTP_400_BAD_REQUEST)
-        return super().destroy(request, *args, **kwargs)
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__icontains=name)
-        return queryset
 
 
 @api_view(['POST'])

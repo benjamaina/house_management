@@ -10,7 +10,7 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 # Create your models here.
 class Tennant(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE,blank=True, null=True)
     name = models.CharField(max_length=50)
     phone = PhoneNumberField(unique=True, db_index= True)
     id_number = models.CharField(max_length=10,null=True, unique=True)
@@ -43,7 +43,7 @@ class Tennant(models.Model):
         return self.name
 
 class FlatBuilding(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='flat_buildings', blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     name = models.CharField(max_length=50, blank=False, null=False)
     address = models.CharField(max_length=50)
     number_of_houses = models.IntegerField(default=0)
@@ -111,9 +111,9 @@ class FlatBuilding(models.Model):
         return self.name
 
 class House(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='houses', blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     flat_building = models.ForeignKey(FlatBuilding,related_name='houses',on_delete=models.CASCADE)
-    house_num = models.CharField(max_length=5, unique=True)
+    house_num = models.CharField(max_length=5)
     house_size = models.CharField(max_length=10, default='1 bedroom')
     house_rent_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     occupation = models.BooleanField(default=False)
@@ -182,7 +182,7 @@ class RentPayment(models.Model):
         (11, 'November'),
         (12, 'December')
     ]
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rent_payments', blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
     tennant = models.ForeignKey(Tennant, on_delete=models.CASCADE, related_name='rent_payments')
     payment_date = models.DateField(auto_now_add=True)
     rent_month = models.IntegerField(choices=MONTH_CHOICES)

@@ -1,24 +1,27 @@
-# Dockerfile.frontend
-
-FROM node:18-alpine
+# Stage 1: Build React app
+FROM node:18-alpine AS build
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files separately for better Docker caching
-COPY frontend/package*.json ./
-
 # Install dependencies
+COPY frontend/package*.json ./
 RUN npm install
 
-# Copy the rest of your app
+# Copy source code
 COPY frontend/ ./
 
 # Build the app
 RUN npm run build
 
-# Expose the port Next.js will run on
-EXPOSE 3000
+# Stage 2: Serve with NGINX
+FROM nginx:alpine
 
-# Start the app
-CMD ["npm", "start"]
+# Copy built assets from Stage 1 to NGINX's public directory
+COPY --from=build /app/build /usr/share/nginx/html
+
+# Expose port 80
+EXPOSE 80
+
+# Start NGINX in the foreground
+CMD ["nginx", "-g", "daemon off;"]

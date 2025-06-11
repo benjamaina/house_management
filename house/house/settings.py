@@ -27,12 +27,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
 DEBUG = os.getenv("DEBUG", "False")== "True"
 REDIS_HOST = os.getenv("REDIS_URL")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
 
 # MPesa API credentials
 MPESA_SHORTCODE = 'your_shortcode'  # Replace with your shortcode from MPesa
@@ -44,12 +44,12 @@ MPESA_SECURITY_CREDENTIAL = 'your_security_credential'  # Security credentials (
 MPESA_LIPA_NA_MPESA_SHORTCODE_SHORTCODE = 'pass'
 
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent with CORS requests
 
 # Application definition
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",

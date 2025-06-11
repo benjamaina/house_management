@@ -17,3 +17,4 @@ tzdata==2025.2
 urllib3==2.3.0
 djangorestframework-simplejwt
 django-cors-headers
+gunicorn

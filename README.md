@@ -1,93 +1,66 @@
-### 🏠 **House Management System**
+# 🏠 House Management System
 
-A full-stack house management system with:
+A full-featured backend system built with Django REST Framework for managing rental properties, tenants, and rent payments — complete with JWT authentication, M-Pesa payment integration, and Redis caching for performance.
 
-* A **custom React frontend** (generated via AI and manually integrated)
-* A **Django REST Framework (DRF) backend** providing APIs
-* **JWT authentication** (SimpleJWT)
-* **Redis caching** for performance
-* Mpesa integration (partial)
-* Admin-focused features with plans for user support
+## 🚀 Features
 
----
+- ✅ Secure JWT-based authentication using SimpleJWT
+- 🏢 CRUD operations for Houses, Tenants, and Flat Buildings
+- 💸 M-Pesa STK Push payment integration
+- 📥 Payment notification handling
+- ⚡ Redis caching for optimized performance
+- 🔐 Admin login/logout functionality
+- 📦 Fully decoupled API for frontend integration
 
-### 🚀 Features
+## 🛠️ Tech Stack
 
-* **Tenant, House, and Rent Payment management** via APIs
-* **JWT-based Authentication** (login/logout/refresh)
-* **Custom Frontend UI** built using React + Tailwind (RippleUI)
-* **Django backend** built with DRF, integrated with Redis
-* **Partially integrated Mpesa API** (payment simulation & notifications)
-* Admin and user account registration via API
-* Token-protected endpoints
-* Fully decoupled architecture
+- **Backend Framework:** Django 4+ / Django REST Framework
+- **Auth:** JWT (SimpleJWT)
+- **Database:** SQLite (configurable)
+- **Payments:** M-Pesa Daraja API
+- **Caching:** Redis
+- **Deployment-ready:** Production-optimized structure
 
----
+## 🔧 API Endpoints
 
-### 📁 Tech Stack
+### Authentication
+- `POST /api/token/` — Get access/refresh token  
+- `POST /api/token/refresh/` — Refresh token  
+- `POST /admin-login/` — Admin login  
+- `POST /admin-logout/` — Admin logout  
 
-* **Frontend:** React + RippleUI + Fetch API
-* **Backend:** Django, Django REST Framework
-* **Authentication:** JWT (SimpleJWT)
-* **Cache:** Redis
-* **Payments:** Mpesa (Safaricom API)
-* **Database:** SQLite (can upgrade to PostgreSQL/MySQL)
+### Tenants
+- `GET /api/tenants/`
+- `POST /api/tenants/`
+- `GET /api/tenants/<id>/`
+- `PUT /api/tenants/<id>/`
+- `DELETE /api/tenants/<id>/`
 
----
+### Houses / Flats / Rent
+- `GET /api/houses/`, `POST /api/houses/`, etc.
+- `GET /api/flat-buildings/` (includes Redis caching)
+- `GET /api/rent-payments/` and full CRUD support
 
-### 🧪 API Endpoints (Sample)
+### Payments
+- `POST /initiate-stk/` — Initiate payment via M-Pesa  
+- `POST /payment-notification/` — Receive payment callback  
 
-* `POST /api/token/` — obtain JWT token
-* `GET /api/tenants/` — list tenants
-* `POST /api/payments/` — create payment
-* `GET /api/houses/` — list houses
-* `POST /api/register/` — register a user
+## 🧪 Running the Project Locally
 
-(You can link to a full Postman collection or docs if available)
+```bash
+# Clone the repo
+git clone https://github.com/benjamaina/house-management.git
+cd house-management
 
----
+# Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-### ⚙️ Setup Instructions
+# Install dependencies
+pip install -r requirements.txt
 
-1. **Backend Setup**
+# Run migrations
+python manage.py migrate
 
-   ```bash
-   cd backend/
-   python -m venv web-venv
-   source web-venv/bin/activate  # or Scripts\activate on Windows
-   pip install -r requirements.txt
-   python manage.py migrate
-   python manage.py runserver
-   ```
-
-2. **Frontend Setup**
-
-   ```bash
-   cd frontend/
-   npm install
-   npm run dev
-   ```
-
-3. **Redis (optional but recommended)**
-
-   * Make sure Redis is running on default port 6379
-
----
-
-### 📌 Notes
-
-* This project was built solo over \~4 months.
-* It began as a learning project without a clear plan and evolved into a full-stack system.
-* The frontend was AI-assisted but manually integrated with the backend.
-* Optimization and Mpesa integration are in progress.
-
----
-
-### 🔒 TODO / Future Plans
-
-* Full Mpesa integration
-* Admin dashboard UI improvements
-* Switch to PostgreSQL
-* Containerization (Docker)
-* Unit and integration testing
-
+# Start the server
+python manage.py runserver

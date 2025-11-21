@@ -8,6 +8,12 @@ db.sqlite3
 .env
 media/
 
+*.key
+*.crt
+*.pem
+*.cer
+*.csr
+
 # Virtual Environments
 venv/
 env/

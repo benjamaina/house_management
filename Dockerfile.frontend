@@ -10,18 +10,27 @@ RUN npm install
 
 # Copy source code
 COPY frontend/ ./
-
 # Build the app
 RUN npm run build
 
-# Stage 2: Serve with NGINX
-FROM nginx:alpine
+EXPOSE 3000
 
-# Copy built assets from Stage 1 to NGINX's public directory
-COPY --from=build /app/build /usr/share/nginx/html
+CMD [ "npm", "start" ]
 
-# Expose port 80
-EXPOSE 80
+# # Copy source code
+# COPY frontend/ ./
 
-# Start NGINX in the foreground
-CMD ["nginx", "-g", "daemon off;"]
+# # Build the app
+# RUN npm run build
+
+# # Stage 2: Serve with NGINX
+# FROM nginx:alpine
+
+# # Copy built assets from Stage 1 to NGINX's public directory
+# COPY --from=build /app/build /usr/share/nginx/html
+
+# # Expose port 80
+# EXPOSE 80
+
+# # Start NGINX in the foreground
+# CMD ["nginx", "-g", "daemon off;"]

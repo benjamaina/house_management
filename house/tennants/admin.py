@@ -1,46 +1,91 @@
 from django.contrib import admin
-from .models import Tennant, House, RentPayment,FlatBuilding,PaymentHistory
-from .forms import TennantForm
-# Register your models here.
+from .models import Tenant, House, RentPayment,FlatBuilding,PaymentHistory
 
-admin.site.register(Tennant)
-admin.site.register(PaymentHistory)
-admin.site.register(House)
-admin.site.register(RentPayment)
+
 admin.site.site_header = 'House Administration'
 
-class HouseAdmin(admin.ModelAdmin):
-    list_display = ["house_number", "building_name", "address", "occupation"]
-    search_fields = ["house_number", "building_name"]
-    list_filter = ["building_name", "occupation"]
 
-    def prevent_delete_house(self, request, obj):
-        if obj.occupation:
-            self.message_user(request, "Cannot delete an occupied house.", level='error')
-            return False
-        return True
+@admin.register(Tenant)
+class TenantAdmin(admin.ModelAdmin):
 
-class TennantAdmin(admin.ModelAdmin):
-    list_display = ["name", "house_number", "building_name", "address", "rent_status"]
-    search_fields = ["name", "house_number", "building_name"]
-    list_filter = ["building_name", "rent_status"]
+    list_display = ('user','full_name', 'email', 'phone', 'house', 'rent', 'security_deposit', 'balance','building_name')
+    ordering = ('full_name',)
+    readonly_fields = ('rent', 'security_deposit', 'balance','user')
 
-class RentPaymentAdmin(admin.ModelAdmin):
-    list_display = ("__all__")
+    def deposit_amount(self, obj):
+        return obj.security_deposit
+    deposit_amount.short_description = 'Security Deposit'
 
-class FlatBuildingAdmin(admin.ModelAdmin):
-    list_display = ('name', 'address', 'number_of_houses', 'how_many_occupied', 'vacant_houses')
+    def building_name(self, obj):
+        return obj.building_name
+    building_name.short_description = 'Building Name'
+
+    def rent_amount(self, obj):
+        return obj.rent
+    rent_amount.short_description = 'Monthly Rent'
+
 
     def save_model(self, request, obj, form, change):
-        super().save_model(request, obj, form, change)  # First, save the object to get a primary key
-        obj.refresh_from_db()  # Ensure we have fresh data from the database
-        obj.how_many_occupied = obj.houses.filter(occupation=True).count()
-        obj.vacant_houses = obj.number_of_houses - obj.how_many_occupied
-        obj.save()  # Save the updated fields
+        # Automatically set rent and security deposit from the associated house
+        super().save_model(request, obj, form, change)
 
-    def delete(self, request, obj):
-        if obj.houses.filter(occupation=True).exists():
-            self.message_user(request, "Cannot delete a flat building with occupied houses.", level='error')
-            return False
-        return True
-admin.site.register(FlatBuilding, FlatBuildingAdmin)
+@admin.register(House)
+class HouseAdmin(admin.ModelAdmin):
+    list_display = ('house_number', 'flat_building', 'house_size', 'house_rent_amount', 'deposit_amount', 'occupation')
+    readonly_fields = ( 'occupation',)
+    list_filter = ('flat_building', 'occupation')
+    search_fields = ('house_number', 'flat_building__building_name')
+
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+@admin.register(RentPayment)
+class RentPaymentAdmin(admin.ModelAdmin):
+    list_display = ("user",'tenant', 'amount_paid', 'payment_date', 'year', 'rent_month', 'payment_method','is_paid', 'rent_amount', 'balance')
+    list_filter = ('payment_date',)
+    ordering = ('-payment_date',)
+    readonly_fields = ('rent_amount', 'balance',)
+
+    def house(self, obj):
+        return obj.tenant.house.house_number if obj.tenant and obj.tenant.house else None
+
+    def balance(self, obj):
+        return obj.balance
+    balance.short_description = 'Balance'
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+@admin.register(FlatBuilding)
+class FlatBuildingAdmin(admin.ModelAdmin):
+    list_display = ('user','building_name', 'address', 'number_of_houses', 'how_many_occupied', 'vacant_houses','tenant_count')
+    search_fields = ('biulding_name', 'address')
+    readonly_fields = ('how_many_occupied', 'vacant_houses')
+
+    def how_many_occupied(self, obj):
+        return obj.how_many_occupied
+    how_many_occupied.short_description = 'Occupied Houses'
+
+    def tenant_count(self, obj):
+        return obj.tenant_count()
+    tenant_count.short_description = 'Number of Tenants'
+
+
+    def vacant_houses(self, obj):
+        return obj.vacant_houses
+    vacant_houses.short_description = 'Vacant Houses'
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(PaymentHistory)
+class PaymentHistoryAdmin(admin.ModelAdmin):
+    list_display = ("user",'tenant', 'house', 'payment_amount', 'payment_date', 'payment_method')
+    list_filter = ('payment_date',)
+    ordering = ('-payment_date',)
+
+    def save_model(self, request, obj, form, change):
+        obj.auto_set_fields()
+        super().save_model(request, obj, form, change)

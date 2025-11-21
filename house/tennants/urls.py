@@ -1,9 +1,7 @@
 from django.urls import path
-from .views import mpesa_payment, mpesa_payment_notification,TenantListView,HouseDetailView,TenantDetailView, FlatBuildingDetailView, admin_login, AdminLogoutView, HouseListView,RegisterAdminView,FlatBuildingListView, RentPaymentListView
+from .views import TenantListView,HouseDetailView,TenantDetailView, FlatBuildingDetailView, admin_login, AdminLogoutView, HouseListView,RegisterAdminView,FlatBuildingListView, RentPaymentListView
 
 urlpatterns = [
-    path('mpesa/payment/', mpesa_payment, name='mpesa_payment'),
-    path('mpesa/notification/', mpesa_payment_notification, name='mpesa_payment_notification'),
     path('tennants/', TenantListView.as_view(), name = 'tennant-list'),
     path('tennants/<int:pk>/', TenantDetailView.as_view(),name ='tennants-list'),
 

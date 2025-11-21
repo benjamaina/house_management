@@ -24,7 +24,7 @@ from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt import views as jwt_views
-from tennants.views import RegisterAdminView
+# from tennants.views import RegisterAdminView
 
 
 def home(request):
@@ -34,7 +34,7 @@ urlpatterns = [
     path("", home, name="home"),
     path("admin/", admin.site.urls),
     path("api/admin/logout/", TokenRefreshView.as_view(), name="admin_logout"),
-    path("api/register", RegisterAdminView.as_view(), name='register'),
+    # path("api/register", RegisterAdminView.as_view(), name='register'),
     path("acounts/", include("django.contrib.auth.urls")),
     path("api/", include("tennants.urls")),
     path("api/token/",jwt_views.TokenObtainPairView.as_view(), name="token_obtain_pair"),

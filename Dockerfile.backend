@@ -1,5 +1,4 @@
 # Dockerfile.backend
-
 FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -14,18 +13,27 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && apt-get clean
 
-# Set working directory
-WORKDIR /app
+# Set working directory to where manage.py will live
+WORKDIR /app/house
 
-# Install Python dependencies
-COPY requirements.txt .
+# Install Python dependencies first (use root context so requirements.txt is found)
+COPY requirements.txt /app/house/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Copy all necessary app files (not just /house)
-COPY . .
+# Copy backend code
+COPY house/ /app/house/
+
+
+COPY entrypoint.sh /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+# RUN python manage.py collectstatic --noinput
 
-# Run Gunicorn (replace 'house' with your actual Django project folder)
-CMD ["gunicorn", "house.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Expose backend port
+EXPOSE 8000
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Run Gunicorn
+# CMD ["gunicorn", "house.wsgi:application", "--bind", "0.0.0.0:8000"]

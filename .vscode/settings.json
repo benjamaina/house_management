@@ -6,5 +6,10 @@
             "name": "new",
             "database": "db.sqlite3"
         }
-    ]
+    ],
+    "python.testing.pytestArgs": [
+        "house"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

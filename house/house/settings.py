@@ -15,6 +15,8 @@ import os
 from dotenv import load_dotenv
 import subprocess
 
+
+
 # subprocess.Popen(["streamlit", "run", "home.py"])
 
 load_dotenv()
@@ -22,35 +24,32 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+# 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY", "")
-DEBUG = os.getenv("DEBUG", "False")== "True"
+
+DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
 REDIS_HOST = os.getenv("REDIS_URL")
 
-# SECURITY WARNING: don't run with debug turned on in production!
 
 
-# MPesa API credentials
-MPESA_SHORTCODE = 'your_shortcode'  # Replace with your shortcode from MPesa
-MPESA_LIPA_NA_MPESA_SHORTCODE = 'your_lipa_na_mpesa_shortcode'  # Lipa na Mpesa shortcode for payments
-MPESA_LIPA_NA_MPESA_SHORTCODE_SHORTCODE = 'your_shortcode'  # If different from the one above
-MPESA_LIPA_NA_MPESA_SHORTCODE_SHORTCODE = 'your_shortcode'  # If different from the one above
-MPESA_INITIATOR = 'your_initiator_name'  # Initiator name from Safaricom
-MPESA_SECURITY_CREDENTIAL = 'your_security_credential'  # Security credentials (usually provided by Safaricom)
-MPESA_LIPA_NA_MPESA_SHORTCODE_SHORTCODE = 'pass'
 
 
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
-CORS_ALLOW_CREDENTIALS = True  # Allow cookies to be sent with CORS requests
+
 
 # Application definition
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS]
 
+print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -83,13 +82,14 @@ REST_FRAMEWORK = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis_cache:6379/1",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # 👈 change here
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
 
+CACHE_TTL = 60 * 15  # 15 minutes
 
 
 MIDDLEWARE = [
@@ -127,14 +127,24 @@ WSGI_APPLICATION = "house.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'house_management',
+#         'USER': os.getenv('USER'),
+#         'PASSWORD': os.getenv('PASSWORD'),
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
+# sqlit
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR/"db.sqlite3",
-
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

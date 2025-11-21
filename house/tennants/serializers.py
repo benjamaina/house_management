@@ -1,73 +1,81 @@
 from rest_framework import serializers
-from .models import Tennant, House, RentPayment, FlatBuilding
+from .models import Tenant, House, RentPayment, FlatBuilding
 from django.contrib.auth.models import User
 
-class RegisterAdminSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
-    email = serializers.EmailField(required=False)
+class TenantSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Username already taken.")
-        return value
+    class Meta:
+        model = Tenant
+        fields = '__all__'
 
-class AdminLoginSerializer(serializers.Serializer):
-    username = serializers.CharField(max_length=150)
-    password = serializers.CharField(max_length=128, write_only=True)
+class HouseSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = House
+        fields = '__all__'
 
     def validate(self, attrs):
-        username = attrs.get('username')
-        password = attrs.get('password')
-
-        if not username or not password:
-            raise serializers.ValidationError("Username and password are required.")
-
+        building = attrs.get('building')
+        if building and building.houses.count() >= building.capacity:
+            raise serializers.ValidationError(
+                f"Cannot add house. {building.name} can only have {building.capacity} houses."
+            )
         return attrs
-
-class TenantLogoutSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tennant
-        fields = ['id','name', 'phone', 'id_number', 'house', 'is_active',"user"]
-
+    
 class FlatBuildingSerializer(serializers.ModelSerializer):
-    how_many_occupied = serializers.IntegerField(read_only=True)
-    vacant_houses = serializers.IntegerField(read_only=True)
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = FlatBuilding
-        fields = ['id', 'name', 'address', 'number_of_houses', 'how_many_occupied', 'vacant_houses','user']
+        fields = '__all__'
 
 class RentPaymentSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
     class Meta:
         model = RentPayment
-        fields = ["id",'tennant','amount', 'payment_date', 'rent_month', 'is_paid',"created_at", 'updated_at', "user"]
-        read_only_fields = ['created_at', 'updated_at'] 
+        fields = '__all__'
 
-class TennantSerializer(serializers.ModelSerializer):
-    balance = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    outstanding_rent = serializers.SerializerMethodField()
+class RegisterAdminSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
 
     class Meta:
-        model = Tennant
-        fields = ['id','name', 'phone', 'balance', 'id_number', 'house', 'is_active', 'outstanding_rent',"user"]
-        read_only_fields = ['balance', 'outstanding_rent',"user"]
+        model = User
+        fields = ['username', 'password', 'email', 'first_name', 'last_name']
 
-    def get_outstanding_rent(self, obj):
-        return obj.outstanding_rent()
+    def create(self, validated_data):
+        user = User(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            first_name=validated_data.get('first_name', ''),
+            last_name=validated_data.get('last_name', '')
+        )
+        user.set_password(validated_data['password'])
+        user.is_staff = True
+        user.save()
+        return user
 
+class AdminLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    remember_me = serializers.BooleanField(default=False)
+    token = serializers.CharField(read_only=True)
+    refresh = serializers.CharField(read_only=True)
 
-    def validate(self, attrs):
-        house = attrs.get('house')  # Correctly use attrs to access data
-        is_active = attrs.get('is_active', True)
+    def validate(self, data):
+        from django.contrib.auth import authenticate
+        from rest_framework_simplejwt.tokens import RefreshToken
 
-        if is_active and house.tennants.filter(is_active=True).exists():
-            raise serializers.ValidationError("House is already occupied by another tenant.")
+        username = data.get('username')
+        password = data.get('password')
+        user = authenticate(username=username, password=password)
 
-        return attrs  # Return the validated attributes
-class HouseSerializer(serializers.ModelSerializer):
-    flat_building_name = serializers.CharField(source='flat_building.name', read_only=True)
-    class Meta:
-        model = House
-        fields = ['id', 'house_num', 'house_size', 'house_rent_amount', "occupation", 'flat_building', 'flat_building_name',"user"]
-        read_only_fields = ['occupation']
+        if user is None or not user.is_staff:
+            raise serializers.ValidationError("Invalid credentials or not an admin user")
+
+        refresh = RefreshToken.for_user(user)
+        data['token'] = str(refresh.access_token)
+        data['refresh'] = str(refresh)
+        return data

@@ -137,14 +137,27 @@ WSGI_APPLICATION = "house.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# db for postgress in localhost
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DB_NAME', 'house_db'),
+#         'USER': os.getenv('DB_USER', 'postgres'),
+#         'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
+#         'HOST': os.getenv('DB_HOST', 'localhost'),
+#         'PORT': os.getenv('DB_PORT', '5432'),
+#     }
+# }
+
+# set up for mysql for pythone everywhere platform
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'house_db',
-        'USER': 'benja',
-        'PASSWORD': 'benjamaina',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME', 'house_db'),
+        'USER': os.getenv('DB_USER', 'benja'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'benjamaina'),
+        'HOST': os.getenv('DB_HOST', 'benmaina.mysql.database.pythoneverywhere.com'),
+        'PORT': os.getenv('DB_PORT', '3306'),
     }
 }
 

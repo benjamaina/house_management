@@ -153,11 +153,11 @@ WSGI_APPLICATION = "house.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'house_db'),
-        'USER': os.getenv('DB_USER', 'benja'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'benjamaina'),
-        'HOST': os.getenv('DB_HOST', 'benmaina.mysql.database.pythoneverywhere.com'),
-        'PORT': os.getenv('DB_PORT', '3306'),
+        'NAME': os.getenv('NAME'),
+        'USER': os.getenv('USER'),
+        'PASSWORD': os.getenv('PASSWORD'),
+        'HOST': os.getenv('HOST'),
+        'PORT': os.getenv('PORT'),
     }
 }
 

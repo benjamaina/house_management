@@ -253,37 +253,37 @@ class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
 # AUTHENTICATION VIEWS
 # ============================================================================
 
-@api_view(['POST'])
-@permission_classes([AllowAny])  # FIX: Changed from IsAuthenticated
-def admin_login(request):
-    """Login endpoint for admin users"""
-    logger.debug(f"Admin login attempt with data: {request.data}")
-    serializer = AdminLoginSerializer(data=request.data)
+# @api_view(['POST'])
+# @permission_classes([AllowAny])  # FIX: Changed from IsAuthenticated
+# def admin_login(request):
+#     """Login endpoint for admin users"""
+#     logger.debug(f"Admin login attempt with data: {request.data}")
+#     serializer = AdminLoginSerializer(data=request.data)
     
-    if serializer.is_valid():
-        username = serializer.validated_data['username']
-        password = serializer.validated_data['password']
+#     if serializer.is_valid():
+#         username = serializer.validated_data['username']
+#         password = serializer.validated_data['password']
 
-        logger.debug(f"Attempting to authenticate user: {username}")
+#         logger.debug(f"Attempting to authenticate user: {username}")
 
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            refresh = RefreshToken.for_user(user)
-            access_token = refresh.access_token
+#         user = authenticate(request, username=username, password=password)
+#         if user is not None:
+#             refresh = RefreshToken.for_user(user)
+#             access_token = refresh.access_token
 
-            return Response({
-                "message": "Login successful",
-                "access_token": str(access_token),
-                "refresh_token": str(refresh),
-            }, status=status.HTTP_200_OK)
-        else:
-            logger.debug(f"Authentication failed for user: {username}")
-            return Response({
-                "message": "Invalid credentials or not a superuser",
-            }, status=status.HTTP_401_UNAUTHORIZED)
-    else:
-        logger.debug(f"Serializer errors: {serializer.errors}")
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#             return Response({
+#                 "message": "Login successful",
+#                 "access_token": str(access_token),
+#                 "refresh_token": str(refresh),
+#             }, status=status.HTTP_200_OK)
+#         else:
+#             logger.debug(f"Authentication failed for user: {username}")
+#             return Response({
+#                 "message": "Invalid credentials or not a superuser",
+#             }, status=status.HTTP_401_UNAUTHORIZED)
+#     else:
+#         logger.debug(f"Serializer errors: {serializer.errors}")
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
  
 class RegisterAdminView(APIView):
@@ -313,3 +313,55 @@ class AdminLogoutView(APIView):
             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+# ============================================================================
+# LOGIN USER VIEW
+# ============================================================================
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def user_login(request):
+    """Login endpoint for regular users"""
+    logger.debug(f"User login attempt with data: {request.data}")
+    logger.debug(request.data)
+    print("DEBUG LOGIN BODY →", request.data)
+
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        refresh = RefreshToken.for_user(user)
+        access_token = refresh.access_token
+
+        return Response({
+            "message": "Login successful",
+            "access_token": str(access_token),
+            "refresh_token": str(refresh),
+        }, status=status.HTTP_200_OK)
+    else:
+        logger.debug(f"Authentication failed for user: {username}")
+        return Response({
+            "message": "Invalid credentials",
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+# ===========================================================================
+# REGISTER USER VIEW
+# ===========================================================================
+# for normal user registration, not admin
+class RegisterUserView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = RegisterAdminSerializer(data=request.data)
+        if serializer.is_valid():
+            username = serializer.validated_data['username']
+            password = serializer.validated_data['password']
+            email = serializer.validated_data.get('email', '')
+
+            try:
+                User.objects.create_user(username=username, password=password, email=email)
+                return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

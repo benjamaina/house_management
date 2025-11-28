@@ -5,11 +5,22 @@
             "driver": "SQLite",
             "name": "new",
             "database": "db.sqlite3"
+        },
+        {
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "house",
+            "database": "house_db",
+            "username": "benja"
         }
     ],
     "python.testing.pytestArgs": [
         "house"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "sqltools.useNodeRuntime": true
 }

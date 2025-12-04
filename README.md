@@ -1,13 +1,11 @@
 # 🏠 House Management System
 
-A full-featured backend system built with Django REST Framework for managing rental properties, tenants, and rent payments — complete with JWT authentication, M-Pesa payment integration, and Redis caching for performance.
+A full-featured backend system built with Django REST Framework for managing rental properties, tenants, and rent payments — complete with JWT authentication, payment tracking and Redis caching for performance.
 
 ## 🚀 Features
 
 - ✅ Secure JWT-based authentication using SimpleJWT
 - 🏢 CRUD operations for Houses, Tenants, and Flat Buildings
-- 💸 M-Pesa STK Push payment integration
-- 📥 Payment notification handling
 - ⚡ Redis caching for optimized performance
 - 🔐 Admin login/logout functionality
 - 📦 Fully decoupled API for frontend integration
@@ -16,7 +14,7 @@ A full-featured backend system built with Django REST Framework for managing ren
 
 - **Backend Framework:** Django 4+ / Django REST Framework
 - **Auth:** JWT (SimpleJWT)
-- **Database:** SQLite (configurable)
+- **Database:** MySQL 
 - **Payments:** M-Pesa Daraja API
 - **Caching:** Redis
 - **Deployment-ready:** Production-optimized structure

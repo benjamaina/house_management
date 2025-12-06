@@ -39,9 +39,10 @@ REDIS_HOST = os.getenv("REDIS_URL")
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:3000",
+    "https://benmaina.pythonanywhere.com"
 ]
 
-ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["https://benmaina.pythonanywhere.com", "localhost", "127.0.0.1"]
 
 
 CORS_ALLOWED_ORIGINS = [
@@ -197,6 +198,11 @@ USE_TZ = True
 # hundle static files
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

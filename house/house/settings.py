@@ -31,7 +31,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
+# DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
+DEBUG = True
 REDIS_HOST = os.getenv("REDIS_URL")
 
 
@@ -54,7 +55,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = False
 
-
+# if tab is  losed in the browser the user is logged out
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 60 * 30  # 30 minutes
 
 # Application definition
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
@@ -62,6 +65,7 @@ ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS]
 
 print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
 INSTALLED_APPS = [
+    "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -76,8 +80,80 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_redis",
     "corsheaders",
+    
+
 ]
 
+
+# settings.py
+UNFOLD = {
+    "SITE_TITLE": "Rental Manager",
+    "SITE_HEADER": "Property Management",
+    
+    # This is the key part - only show what you define
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,  # IMPORTANT: This must be False
+        "navigation": [
+            {
+                "title": "Dashboard",
+                "items": [
+                    {
+                        "title": "Overview",
+                        "icon": "dashboard",
+                        "link": "/admin/",
+                    },
+                ],
+            },
+            {
+                "title": "Property Management",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Flat buildings",
+                        "icon": "apartment",
+                        "link": "/admin/tennants/flatbuilding/",  # adjust app name
+                    },
+                    {
+                        "title": "Houses",
+                        "icon": "home",
+                        "link": "/admin/tennants/house/",  # adjust app name
+                    },
+                ],
+            },
+            {
+                "title": "Tennants",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Tenants",
+                        "icon": "people",
+                        "link": "/admin/tennants/tenant/",  # adjust app name
+                    },
+                ],
+            },
+            {
+                "title": "Payments",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Rent payments",
+                        "icon": "payments",
+                        "link": "/admin/tennants/rentpayment/",
+                    },
+                    {
+                        "title": "Payment historys",
+                        "icon": "history",
+                        "link": "/admin/tennants/paymenthistory/",
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -146,10 +222,17 @@ WSGI_APPLICATION = "house.wsgi.application"
 #         'USER': os.getenv('DB_USER', 'postgres'),
 #         'PASSWORD': os.getenv('DB_PASSWORD', 'password'),
 #         'HOST': os.getenv('DB_HOST', 'localhost'),
-#         'PORT': os.getenv('DB_PORT', '5432'),
+#         'PORT': os.getenv('DB_PORT', '5438'),
 #     }
 # }
 
+# db for sqlite3
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 # set up for mysql for pythone everywhere platform
 DATABASES = {
     'default': {
@@ -197,7 +280,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 # hundle static files
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 

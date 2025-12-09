@@ -9,13 +9,13 @@ A full-featured backend system built with Django REST Framework for managing ren
 - ⚡ Redis caching for optimized performance
 - 🔐 Admin login/logout functionality
 - 📦 Fully decoupled API for frontend integration
+- MYSQL for storage
 
 ## 🛠️ Tech Stack
 
 - **Backend Framework:** Django 4+ / Django REST Framework
 - **Auth:** JWT (SimpleJWT)
 - **Database:** MySQL 
-- **Payments:** M-Pesa Daraja API
 - **Caching:** Redis
 - **Deployment-ready:** Production-optimized structure
 

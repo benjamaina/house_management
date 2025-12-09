@@ -1,10 +1,18 @@
 from django import forms
-from .models import Tennant, House, RentPayment
+from .models import House, RentPayment, Tenant, FlatBuilding, PaymentHistory
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
 
-class TennantForm(forms.ModelForm):
+
+
+class RegistrationForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
     class Meta:
-        model = Tennant
-        fields = '__all__'
+        model = User
+        fields = ['username', 'email', 'password1', 'password2']
+
+
 
 class HouseForm(forms.ModelForm):
     class Meta:
@@ -16,7 +24,20 @@ class RentPaymentForm(forms.ModelForm):
         model = RentPayment
         fields = '__all__'
 
-class TennantForm(forms.ModelForm):
+
+class TenantForm(forms.ModelForm):
     class Meta:
-        model = Tennant
+        model = Tenant
         fields = '__all__'
+
+class FlatBuildingForm(forms.ModelForm):
+    class Meta:
+        model = FlatBuilding
+        fields = '__all__'
+
+class PaymentHistoryForm(forms.ModelForm):
+    class Meta:
+        model = PaymentHistory
+        fields = '__all__'
+
+# Additional forms can be added here as needed

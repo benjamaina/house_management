@@ -30,6 +30,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import hashlib
 import json
 import logging
+from .forms import RegistrationForm
+from django.shortcuts import render, redirect
 
 logger = logging.getLogger(__name__)
 
@@ -253,39 +255,8 @@ class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
 # AUTHENTICATION VIEWS
 # ============================================================================
 
-# @api_view(['POST'])
-# @permission_classes([AllowAny])  # FIX: Changed from IsAuthenticated
-# def admin_login(request):
-#     """Login endpoint for admin users"""
-#     logger.debug(f"Admin login attempt with data: {request.data}")
-#     serializer = AdminLoginSerializer(data=request.data)
-    
-#     if serializer.is_valid():
-#         username = serializer.validated_data['username']
-#         password = serializer.validated_data['password']
 
-#         logger.debug(f"Attempting to authenticate user: {username}")
 
-#         user = authenticate(request, username=username, password=password)
-#         if user is not None:
-#             refresh = RefreshToken.for_user(user)
-#             access_token = refresh.access_token
-
-#             return Response({
-#                 "message": "Login successful",
-#                 "access_token": str(access_token),
-#                 "refresh_token": str(refresh),
-#             }, status=status.HTTP_200_OK)
-#         else:
-#             logger.debug(f"Authentication failed for user: {username}")
-#             return Response({
-#                 "message": "Invalid credentials or not a superuser",
-#             }, status=status.HTTP_401_UNAUTHORIZED)
-#     else:
-#         logger.debug(f"Serializer errors: {serializer.errors}")
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
- 
 class RegisterAdminView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -365,3 +336,20 @@ class RegisterUserView(APIView):
             except Exception as e:
                 return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+def register(request):
+    if request.method == "POST":
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save(commit=False)
+            # will set the user admin to true to access admin UI
+            user.is_staff = True
+            user.is_superuser = True
+            user.save()
+            login(request, user)  # Auto-login after registration
+            return redirect("home")  # Change to your home page name
+    else:
+        form = RegistrationForm()
+    
+    return render(request, "registration/register.html", {"form": form})

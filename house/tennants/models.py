@@ -79,7 +79,7 @@ class FlatBuilding(models.Model):
 
 
 class Tenant(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE,blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE,blank=True, null=True, db_index=True)
     full_name = models.CharField(max_length=50, blank=False, null=False, db_index=True)
     email = models.EmailField(unique=True, db_index=True)
     phone = PhoneNumberField(unique=True, db_index= True)
@@ -156,7 +156,7 @@ class Tenant(models.Model):
 
 
 class House(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True,db_index=True)
     flat_building = models.ForeignKey(FlatBuilding,related_name='houses',on_delete=models.CASCADE, db_index=True)
     house_number = models.CharField(max_length=5, db_index=True)
     house_size = models.CharField(max_length=10, default='1 bedroom')
@@ -319,7 +319,7 @@ class RentPayment(models.Model):
 
 
 class PaymentHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, blank=True, null=True, db_index=True)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='payment_history')
     house = models.ForeignKey(House, on_delete=models.CASCADE, related_name='payment_history')
     rent_payment = models.ForeignKey(RentPayment, on_delete=models.CASCADE, related_name='history')

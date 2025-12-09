@@ -1,9 +1,26 @@
 from django.contrib import admin
 from .models import Tenant, House, RentPayment,FlatBuilding,PaymentHistory
-
+from django.contrib.auth.models import Group
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User
 
 admin.site.site_header = 'House Administration'
 
+admin.site.unregister(Group)
+admin.site.unregister(User)
+
+
+
+try:
+    admin.site.unregister(Token)
+except:
+    pass
+# remove the Token display from the User admin
+class UserAdmin(BaseUserAdmin):
+    def get_inline_instances(self, request, obj=None):
+        inline_instances = super().get_inline_instances(request, obj)
+        return [inline for inline in inline_instances if inline.__class__.__name__ != 'Token']
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):

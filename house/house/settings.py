@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
-DEBUG = True
+DEBUG = False
 REDIS_HOST = os.getenv("REDIS_URL")
 
 
@@ -62,9 +62,6 @@ SESSION_COOKIE_AGE = 60 * 30  # 30 minutes
 SESSION_SAVE_EVERY_REQUEST = True
 
 
-# Application definition
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS]
 
 print("ALLOWED_HOSTS:", ALLOWED_HOSTS)
 INSTALLED_APPS = [

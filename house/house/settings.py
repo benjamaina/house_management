@@ -43,7 +43,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://benmaina.pythonanywhere.com"
 ]
 
-ALLOWED_HOSTS = ["https://benmaina.pythonanywhere.com", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["benmaina.pythonanywhere.com", "localhost", "127.0.0.1"]
 
 
 CORS_ALLOWED_ORIGINS = [
@@ -227,23 +227,23 @@ WSGI_APPLICATION = "house.wsgi.application"
 # }
 
 # db for sqlite3
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
-# set up for mysql for pythone everywhere platform
 # DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': os.getenv('NAME'),
-#         'USER': os.getenv('USER'),
-#         'PASSWORD': os.getenv('PASSWORD'),
-#         'HOST': os.getenv('HOST'),
-#         'PORT': os.getenv('PORT'),
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
 #     }
 # }
+# set up for mysql for pythone everywhere platform
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('NAME'),
+        'USER': os.getenv('USER'),
+        'PASSWORD': os.getenv('PASSWORD'),
+        'HOST': os.getenv('HOST'),
+        'PORT': os.getenv('PORT'),
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

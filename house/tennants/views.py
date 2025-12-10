@@ -356,7 +356,7 @@ def register(request):
         if form.is_valid():
             user = form.save(commit=False)
             # will set the user admin to true to access admin UI
-            user.is_staff = True
+            user.is_staff = False
             user.is_superuser = False
             user.save()
             # login(request, user)  # Auto-login after registration

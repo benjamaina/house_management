@@ -172,7 +172,7 @@ def home(request):
         <p class="subtitle">Streamline your property management with our powerful and intuitive system.</p>
         
         <div class="buttons">
-            <a href="/admin/" class="btn btn-primary">Admin Dashboard</a>
+            <a href="/login/" class="btn btn-primary">Admin Dashboard</a>
             <a href="/register/" class="btn btn-secondary">Register</a>
         </div>
 
@@ -193,5 +193,7 @@ urlpatterns = [
     path("api/token/",jwt_views.TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", jwt_views.TokenRefreshView.as_view(), name="token_refresh"),
     path("register/", views.register, name="register"),
-
+    path("login/", auth_views.LoginView.as_view(template_name='login.html'), name="login"),
+    path("dashboard/", login_required(views.dashboard), name="dashboard"),
+    path("logout/", auth_views.LogoutView.as_view(), name="logout"),    
 ]

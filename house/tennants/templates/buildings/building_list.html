@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Buildings - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <span>Buildings</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Your <span>Buildings</span></h1>
+    <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
+</div>
+
+<div class="card">
+    {% if buildings %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Building Name</th>
+                    <th>Address</th>
+                    <th>Total Houses</th>
+                    <th>Occupied</th>
+                    <th>Vacant</th>
+                    <th>Active Tenants</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for building in buildings %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        <a href="{% url 'building_detail' building.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                            {{ building.building_name }}
+                        </a>
+                    </td>
+                    <td>{{ building.address }}</td>
+                    <td>{{ building.number_of_houses }}</td>
+                    <td><span class="badge badge-success">{{ building.how_many_occupied }}</span></td>
+                    <td><span class="badge badge-warning">{{ building.vacant_houses }}</span></td>
+                    <td>{{ building.tenant_count }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'building_detail' building.pk %}" class="btn-icon" title="View Details">👁</a>
+                            <a href="{% url 'building_edit' building.pk %}" class="btn-icon" title="Edit">✏️</a>
+                            <a href="{% url 'building_delete' building.pk %}" class="btn-icon danger" title="Delete">🗑</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No buildings found</h3>
+        <p>Add your first building to get started</p>
+        <a href="{% url 'building_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Add Building</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Houses - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <span>Houses</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">All <span>Houses</span></h1>
+    <a href="{% url 'house_add' %}" class="btn btn-primary">+ Add House</a>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <form method="get" style="display: flex; gap: 1rem; align-items: center;">
+        <label style="color: var(--text-secondary);">Filter by Building:</label>
+        <select name="building" class="form-control" style="width: auto; min-width: 200px;" onchange="this.form.submit()">
+            <option value="">All Buildings</option>
+            {% for building in buildings %}
+            <option value="{{ building.pk }}" {% if request.GET.building == building.pk|stringformat:"i" %}selected{% endif %}>
+                {{ building.building_name }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="card">
+    {% if houses %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>House Number</th>
+                    <th>Building</th>
+                    <th>Size</th>
+                    <th>Rent Amount</th>
+                    <th>Deposit</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for house in houses %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        <a href="{% url 'house_detail' house.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                            {{ house.house_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{% url 'building_detail' house.flat_building.pk %}" style="color: var(--primary-blue); text-decoration: none;">
+                            {{ house.flat_building.building_name }}
+                        </a>
+                    </td>
+                    <td>{{ house.house_size }}</td>
+                    <td style="color: var(--accent-green);">KES {{ house.house_rent_amount }}</td>
+                    <td>KES {{ house.deposit_amount }}</td>
+                    <td>
+                        {% if house.occupation %}
+                        <span class="badge badge-success">Occupied</span>
+                        {% else %}
+                        <span class="badge badge-warning">Vacant</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'house_detail' house.pk %}" class="btn-icon" title="View Details">👁</a>
+                            <a href="{% url 'house_edit' house.pk %}" class="btn-icon" title="Edit">✏️</a>
+                            <a href="{% url 'house_delete' house.pk %}" class="btn-icon danger" title="Delete">🗑</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No houses found</h3>
+        <p>{% if request.GET.building %}No houses in this building{% else %}Add your first house to get started{% endif %}</p>
+        <a href="{% url 'house_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Add House</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

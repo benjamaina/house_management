@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - House Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Welcome back, <span>{{ request.user.username }}</span></h1>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ buildings.count }}</div>
+        <div class="stat-label">Total Buildings</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ total_houses }}</div>
+        <div class="stat-label">Total Houses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ occupied_houses }}</div>
+        <div class="stat-label">Occupied Houses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ vacant_houses }}</div>
+        <div class="stat-label">Vacant Houses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ active_tenants }}</div>
+        <div class="stat-label">Active Tenants</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Quick Actions</h2>
+    </div>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
+        <a href="{% url 'house_add' %}" class="btn btn-secondary">+ Add House</a>
+        <a href="{% url 'tenant_add' %}" class="btn btn-secondary">+ Add Tenant</a>
+        <a href="{% url 'payment_add' %}" class="btn btn-secondary">+ Record Payment</a>
+        <a href="{% url 'overdue_payments' %}" class="btn btn-danger">View Overdue</a>
+    </div>
+</div>
+
+<!-- Buildings Overview -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Your Buildings</h2>
+        <a href="{% url 'building_list' %}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    
+    {% if buildings %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Building Name</th>
+                    <th>Address</th>
+                    <th>Total Houses</th>
+                    <th>Occupied</th>
+                    <th>Vacant</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for building in buildings %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">{{ building.building_name }}</td>
+                    <td>{{ building.address }}</td>
+                    <td>{{ building.number_of_houses }}</td>
+                    <td><span class="badge badge-success">{{ building.how_many_occupied }}</span></td>
+                    <td><span class="badge badge-warning">{{ building.vacant_houses }}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'building_detail' building.pk %}" class="btn-icon" title="View">👁</a>
+                            <a href="{% url 'building_edit' building.pk %}" class="btn-icon" title="Edit">✏️</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No buildings yet</h3>
+        <p>Get started by adding your first building</p>
+        <a href="{% url 'building_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Add Building</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Recent Payments -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Recent Payments</h2>
+        <a href="{% url 'payment_list' %}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    
+    {% if recent_payments %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Amount</th>
+                    <th>Month/Year</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in recent_payments %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">{{ payment.tenant.full_name }}</td>
+                    <td style="color: var(--accent-green);">KES {{ payment.amount_paid }}</td>
+                    <td>{{ payment.get_rent_month_display }} {{ payment.year }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>
+                        {% if payment.is_paid %}
+                        <span class="badge badge-success">Paid</span>
+                        {% else %}
+                        <span class="badge badge-warning">Partial</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ payment.payment_date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No payments recorded yet</h3>
+        <p>Payments will appear here once recorded</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

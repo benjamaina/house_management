@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}House {{ house.house_number }} - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'house_list' %}">Houses</a>
+    <span>/</span>
+    <span>House {{ house.house_number }}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">House <span>{{ house.house_number }}</span></h1>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{% url 'house_edit' house.pk %}" class="btn btn-secondary">Edit House</a>
+        {% if not house.occupation %}
+        <a href="{% url 'tenant_add' %}?house={{ house.pk }}" class="btn btn-primary">+ Assign Tenant</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- House Status -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value" style="color: {% if house.occupation %}var(--success){% else %}var(--accent-yellow){% endif %};">
+            {% if house.occupation %}Occupied{% else %}Vacant{% endif %}
+        </div>
+        <div class="stat-label">Status</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--accent-green);">{{ house.house_rent_amount }}</div>
+        <div class="stat-label">Monthly Rent (KES)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ house.deposit_amount }}</div>
+        <div class="stat-label">Security Deposit (KES)</div>
+    </div>
+</div>
+
+<!-- House Details -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">House Details</h2>
+    </div>
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">House Number</div>
+            <div class="detail-value">{{ house.house_number }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Building</div>
+            <div class="detail-value">
+                <a href="{% url 'building_detail' house.flat_building.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                    {{ house.flat_building.building_name }}
+                </a>
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Address</div>
+            <div class="detail-value">{{ house.flat_building.address }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Size</div>
+            <div class="detail-value">{{ house.house_size }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Monthly Rent</div>
+            <div class="detail-value" style="color: var(--accent-green);">KES {{ house.house_rent_amount }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Security Deposit</div>
+            <div class="detail-value">KES {{ house.deposit_amount }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Tenant -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Current Tenant</h2>
+        {% if not tenant %}
+        <a href="{% url 'tenant_add' %}" class="btn btn-primary btn-sm">+ Assign Tenant</a>
+        {% endif %}
+    </div>
+    
+    {% if tenant %}
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">Tenant Name</div>
+            <div class="detail-value">
+                <a href="{% url 'tenant_detail' tenant.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                    {{ tenant.full_name }}
+                </a>
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Phone</div>
+            <div class="detail-value">{{ tenant.phone }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Email</div>
+            <div class="detail-value">{{ tenant.email }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Rent Due Date</div>
+            <div class="detail-value">{{ tenant.rent_due_date }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Balance</div>
+            <div class="detail-value" style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                KES {{ tenant.balance }}
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Status</div>
+            <div class="detail-value">
+                {% if tenant.is_active %}
+                <span class="badge badge-success">Active</span>
+                {% else %}
+                <span class="badge badge-danger">Inactive</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem;">
+        <a href="{% url 'tenant_detail' tenant.pk %}" class="btn btn-secondary btn-sm">View Tenant Details</a>
+        <a href="{% url 'payment_add' %}" class="btn btn-primary btn-sm">+ Record Payment</a>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No tenant assigned</h3>
+        <p>This house is currently vacant</p>
+        <a href="{% url 'tenant_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Assign Tenant</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

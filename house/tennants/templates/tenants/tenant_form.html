@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Tenant - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'tenant_list' %}">Tenants</a>
+    <span>/</span>
+    <span>{% if object %}Edit {{ object.full_name }}{% else %}Add Tenant{% endif %}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">{% if object %}Edit <span>{{ object.full_name }}</span>{% else %}Add New <span>Tenant</span>{% endif %}</h1>
+</div>
+
+<div class="card" style="max-width: 700px;">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="alert alert-error">
+            <strong>Please correct the errors below:</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div class="form-group">
+                <label for="id_full_name" class="form-label">Full Name *</label>
+                <input type="text" 
+                       name="full_name" 
+                       id="id_full_name" 
+                       class="form-control" 
+                       value="{{ form.full_name.value|default:'' }}"
+                       placeholder="Enter tenant's full name"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_email" class="form-label">Email Address *</label>
+                <input type="email" 
+                       name="email" 
+                       id="id_email" 
+                       class="form-control" 
+                       value="{{ form.email.value|default:'' }}"
+                       placeholder="tenant@email.com"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_phone" class="form-label">Phone Number *</label>
+                <input type="tel" 
+                       name="phone" 
+                       id="id_phone" 
+                       class="form-control" 
+                       value="{{ form.phone.value|default:'' }}"
+                       placeholder="+254712345678"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="id_id_number" class="form-label">ID Number</label>
+                <input type="text" 
+                       name="id_number" 
+                       id="id_id_number" 
+                       class="form-control" 
+                       value="{{ form.id_number.value|default:'' }}"
+                       placeholder="National ID number">
+            </div>
+
+            <div class="form-group">
+                <label for="id_house" class="form-label">Assign to House *</label>
+                <select name="house" id="id_house" class="form-control" required>
+                    <option value="">Select a house</option>
+                    {% for house in form.fields.house.queryset %}
+                    <option value="{{ house.pk }}" {% if form.house.value == house.pk|stringformat:"i" or object.house.pk == house.pk %}selected{% endif %}>
+                        {{ house.flat_building.building_name }} - {{ house.house_number }} ({{ house.house_size }}) - KES {{ house.house_rent_amount }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if not object %}
+                <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                    Only vacant houses are shown
+                </small>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_rent_due_date" class="form-label">Rent Due Date</label>
+                <input type="date" 
+                       name="rent_due_date" 
+                       id="id_rent_due_date" 
+                       class="form-control" 
+                       value="{{ form.rent_due_date.value|date:'Y-m-d'|default:'' }}">
+            </div>
+
+            {% if object %}
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem;">
+                    <input type="checkbox" 
+                           name="is_active" 
+                           id="id_is_active" 
+                           {% if form.is_active.value or object.is_active %}checked{% endif %}
+                           style="width: 20px; height: 20px; accent-color: var(--accent-green);">
+                    <label for="id_is_active" style="color: var(--text-secondary); margin: 0; cursor: pointer;">
+                        Active Tenant
+                    </label>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary">
+                {% if object %}Update Tenant{% else %}Add Tenant{% endif %}
+            </button>
+            <a href="{% url 'tenant_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

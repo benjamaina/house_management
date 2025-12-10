@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ building.building_name }} - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'building_list' %}">Buildings</a>
+    <span>/</span>
+    <span>{{ building.building_name }}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title"><span>{{ building.building_name }}</span></h1>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{% url 'building_edit' building.pk %}" class="btn btn-secondary">Edit Building</a>
+        <a href="{% url 'house_add' %}?building={{ building.pk }}" class="btn btn-primary">+ Add House</a>
+    </div>
+</div>
+
+<!-- Building Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ building.number_of_houses }}</div>
+        <div class="stat-label">Total Houses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--success);">{{ building.how_many_occupied }}</div>
+        <div class="stat-label">Occupied</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ building.vacant_houses }}</div>
+        <div class="stat-label">Vacant</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--primary-blue);">{{ building.tenant_count }}</div>
+        <div class="stat-label">Active Tenants</div>
+    </div>
+</div>
+
+<!-- Building Details -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Building Details</h2>
+    </div>
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">Building Name</div>
+            <div class="detail-value">{{ building.building_name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Address</div>
+            <div class="detail-value">{{ building.address }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Occupancy Rate</div>
+            <div class="detail-value">
+                {% widthratio building.how_many_occupied building.number_of_houses 100 %}%
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Houses in Building -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Houses in {{ building.building_name }}</h2>
+        <a href="{% url 'house_add' %}" class="btn btn-primary btn-sm">+ Add House</a>
+    </div>
+    
+    {% if houses %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>House Number</th>
+                    <th>Size</th>
+                    <th>Rent Amount</th>
+                    <th>Deposit</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for house in houses %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        <a href="{% url 'house_detail' house.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                            {{ house.house_number }}
+                        </a>
+                    </td>
+                    <td>{{ house.house_size }}</td>
+                    <td style="color: var(--accent-green);">KES {{ house.house_rent_amount }}</td>
+                    <td>KES {{ house.deposit_amount }}</td>
+                    <td>
+                        {% if house.occupation %}
+                        <span class="badge badge-success">Occupied</span>
+                        {% else %}
+                        <span class="badge badge-warning">Vacant</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'house_detail' house.pk %}" class="btn-icon" title="View">👁</a>
+                            <a href="{% url 'house_edit' house.pk %}" class="btn-icon" title="Edit">✏️</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No houses in this building</h3>
+        <p>Add houses to this building to start managing them</p>
+        <a href="{% url 'house_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Add House</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

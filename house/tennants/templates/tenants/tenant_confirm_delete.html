@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ object.full_name }} - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'tenant_list' %}">Tenants</a>
+    <span>/</span>
+    <span>Delete {{ object.full_name }}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Delete <span>Tenant</span></h1>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <div style="text-align: center; padding: 1rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">Confirm Deletion</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Are you sure you want to delete tenant <strong style="color: var(--text-primary);">{{ object.full_name }}</strong>?
+        </p>
+        
+        {% if object.house %}
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">
+            Currently assigned to: <strong>{{ object.house }}</strong>
+        </p>
+        {% endif %}
+        
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+            This action cannot be undone. All payment records associated with this tenant will also be deleted.
+        </p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button type="submit" class="btn btn-danger">Yes, Delete Tenant</button>
+                <a href="{% url 'tenant_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tenant.full_name }} - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'tenant_list' %}">Tenants</a>
+    <span>/</span>
+    <span>{{ tenant.full_name }}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title"><span>{{ tenant.full_name }}</span></h1>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{% url 'tenant_edit' tenant.pk %}" class="btn btn-secondary">Edit Tenant</a>
+        <a href="{% url 'payment_add' %}" class="btn btn-primary">+ Record Payment</a>
+    </div>
+</div>
+
+<!-- Tenant Stats -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value" style="color: {% if tenant.is_active %}var(--success){% else %}var(--danger){% endif %};">
+            {% if tenant.is_active %}Active{% else %}Inactive{% endif %}
+        </div>
+        <div class="stat-label">Status</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: var(--accent-green);">{{ tenant.rent }}</div>
+        <div class="stat-label">Monthly Rent (KES)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value" style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ tenant.balance }}</div>
+        <div class="stat-label">Balance (KES)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ payments.count }}</div>
+        <div class="stat-label">Total Payments</div>
+    </div>
+</div>
+
+<!-- Tenant Details -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Tenant Information</h2>
+    </div>
+    <div class="detail-grid">
+        <div class="detail-item">
+            <div class="detail-label">Full Name</div>
+            <div class="detail-value">{{ tenant.full_name }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Email</div>
+            <div class="detail-value">{{ tenant.email }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Phone</div>
+            <div class="detail-value">{{ tenant.phone }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">ID Number</div>
+            <div class="detail-value">{{ tenant.id_number|default:"Not provided" }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">House</div>
+            <div class="detail-value">
+                {% if tenant.house %}
+                <a href="{% url 'house_detail' tenant.house.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                    {{ tenant.house.house_number }}
+                </a>
+                {% else %}
+                Not assigned
+                {% endif %}
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Building</div>
+            <div class="detail-value">
+                {% if tenant.building_name %}
+                <a href="{% url 'building_detail' tenant.house.flat_building.pk %}" style="color: var(--primary-blue); text-decoration: none;">
+                    {{ tenant.building_name }}
+                </a>
+                {% else %}
+                -
+                {% endif %}
+            </div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Building Address</div>
+            <div class="detail-value">{{ tenant.building_adress|default:"-" }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Rent Due Date</div>
+            <div class="detail-value">{{ tenant.rent_due_date }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Security Deposit</div>
+            <div class="detail-value">KES {{ tenant.security_deposit }}</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Member Since</div>
+            <div class="detail-value">{{ tenant.created_at|date:"M d, Y" }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Payments Alert -->
+{% if overdue_payments %}
+<div class="alert alert-warning">
+    <strong>⚠️ Overdue Payments:</strong> This tenant has {{ overdue_payments.count }} overdue payment(s) totaling 
+    KES {% for p in overdue_payments %}{{ p.balance }}{% if not forloop.last %} + {% endif %}{% endfor %}
+</div>
+{% endif %}
+
+<!-- Payment History -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Payment History</h2>
+        <a href="{% url 'payment_add' %}" class="btn btn-primary btn-sm">+ Record Payment</a>
+    </div>
+    
+    {% if payments %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Month/Year</th>
+                    <th>Rent Amount</th>
+                    <th>Amount Paid</th>
+                    <th>Balance</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        {{ payment.get_rent_month_display }} {{ payment.year }}
+                    </td>
+                    <td>KES {{ payment.rent_amount }}</td>
+                    <td style="color: var(--accent-green);">KES {{ payment.amount_paid }}</td>
+                    <td style="color: {% if payment.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                        KES {{ payment.balance }}
+                    </td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td>
+                        {% if payment.is_paid %}
+                        <span class="badge badge-success">Fully Paid</span>
+                        {% elif payment.amount_paid > 0 %}
+                        <span class="badge badge-warning">Partial</span>
+                        {% else %}
+                        <span class="badge badge-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ payment.payment_date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No payment history</h3>
+        <p>Payments will appear here once recorded</p>
+        <a href="{% url 'payment_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Record Payment</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

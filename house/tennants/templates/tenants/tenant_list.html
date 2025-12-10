@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Tenants - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <span>Tenants</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">All <span>Tenants</span></h1>
+    <a href="{% url 'tenant_add' %}" class="btn btn-primary">+ Add Tenant</a>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+    <form method="get" style="display: flex; gap: 1rem; align-items: center;">
+        <label style="color: var(--text-secondary);">Filter by Status:</label>
+        <select name="status" class="form-control" style="width: auto; min-width: 150px;" onchange="this.form.submit()">
+            <option value="">All Tenants</option>
+            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active Only</option>
+            <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive Only</option>
+        </select>
+    </form>
+</div>
+
+<div class="card">
+    {% if tenants %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tenant Name</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>House</th>
+                    <th>Building</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tenant in tenants %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">
+                        <a href="{% url 'tenant_detail' tenant.pk %}" style="color: var(--accent-yellow); text-decoration: none;">
+                            {{ tenant.full_name }}
+                        </a>
+                    </td>
+                    <td>{{ tenant.phone }}</td>
+                    <td>{{ tenant.email }}</td>
+                    <td>
+                        {% if tenant.house %}
+                        <a href="{% url 'house_detail' tenant.house.pk %}" style="color: var(--primary-blue); text-decoration: none;">
+                            {{ tenant.house.house_number }}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted);">Not assigned</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ tenant.building_name|default:"-" }}</td>
+                    <td style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+                        KES {{ tenant.balance }}
+                    </td>
+                    <td>
+                        {% if tenant.is_active %}
+                        <span class="badge badge-success">Active</span>
+                        {% else %}
+                        <span class="badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'tenant_detail' tenant.pk %}" class="btn-icon" title="View Details">👁</a>
+                            <a href="{% url 'tenant_edit' tenant.pk %}" class="btn-icon" title="Edit">✏️</a>
+                            <a href="{% url 'tenant_delete' tenant.pk %}" class="btn-icon danger" title="Delete">🗑</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No tenants found</h3>
+        <p>{% if request.GET.status %}No {{ request.GET.status }} tenants{% else %}Add your first tenant to get started{% endif %}</p>
+        <a href="{% url 'tenant_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Add Tenant</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

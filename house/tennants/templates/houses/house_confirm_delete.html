@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Delete House {{ object.house_number }} - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'house_list' %}">Houses</a>
+    <span>/</span>
+    <span>Delete House {{ object.house_number }}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Delete <span>House</span></h1>
+</div>
+
+<div class="card" style="max-width: 500px;">
+    <div style="text-align: center; padding: 1rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+        <h2 style="color: var(--danger); margin-bottom: 1rem;">Confirm Deletion</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+            Are you sure you want to delete <strong style="color: var(--text-primary);">House {{ object.house_number }}</strong>
+            from <strong style="color: var(--accent-yellow);">{{ object.flat_building.building_name }}</strong>?
+        </p>
+        <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+            This action cannot be undone.
+        </p>
+        
+        {% if object.occupation %}
+        <div class="alert alert-warning" style="text-align: left;">
+            <strong>Warning:</strong> This house is currently occupied. 
+            You cannot delete an occupied house.
+        </div>
+        <a href="{% url 'house_list' %}" class="btn btn-secondary">Go Back</a>
+        {% else %}
+        <form method="post">
+            {% csrf_token %}
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button type="submit" class="btn btn-danger">Yes, Delete House</button>
+                <a href="{% url 'house_list' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

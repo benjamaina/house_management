@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} House - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'house_list' %}">Houses</a>
+    <span>/</span>
+    <span>{% if object %}Edit House {{ object.house_number }}{% else %}Add House{% endif %}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">{% if object %}Edit <span>House {{ object.house_number }}</span>{% else %}Add New <span>House</span>{% endif %}</h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="alert alert-error">
+            <strong>Please correct the errors below:</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="id_flat_building" class="form-label">Building *</label>
+            <select name="flat_building" id="id_flat_building" class="form-control" required>
+                <option value="">Select a building</option>
+                {% for building in form.fields.flat_building.queryset %}
+                <option value="{{ building.pk }}" {% if form.flat_building.value == building.pk|stringformat:"i" or object.flat_building.pk == building.pk %}selected{% endif %}>
+                    {{ building.building_name }} ({{ building.vacant_houses }} vacant)
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="id_house_number" class="form-label">House Number *</label>
+            <input type="text" 
+                   name="house_number" 
+                   id="id_house_number" 
+                   class="form-control" 
+                   value="{{ form.house_number.value|default:'' }}"
+                   placeholder="e.g., A1, B2, 101"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="id_house_size" class="form-label">House Size</label>
+            <input type="text" 
+                   name="house_size" 
+                   id="id_house_size" 
+                   class="form-control" 
+                   value="{{ form.house_size.value|default:'1 bedroom' }}"
+                   placeholder="e.g., 1 bedroom, 2 bedroom, Bedsitter">
+        </div>
+
+        <div class="form-group">
+            <label for="id_house_rent_amount" class="form-label">Monthly Rent (KES) *</label>
+            <input type="number" 
+                   name="house_rent_amount" 
+                   id="id_house_rent_amount" 
+                   class="form-control" 
+                   value="{{ form.house_rent_amount.value|default:'0' }}"
+                   min="0"
+                   step="0.01"
+                   placeholder="Enter monthly rent amount"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="id_deposit_amount" class="form-label">Security Deposit (KES)</label>
+            <input type="number" 
+                   name="deposit_amount" 
+                   id="id_deposit_amount" 
+                   class="form-control" 
+                   value="{{ form.deposit_amount.value|default:'0' }}"
+                   min="0"
+                   step="0.01"
+                   placeholder="Enter deposit amount">
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary">
+                {% if object %}Update House{% else %}Create House{% endif %}
+            </button>
+            <a href="{% url 'house_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

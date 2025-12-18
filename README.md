@@ -1,64 +1,121 @@
-# 🏠 House Management System
+🏠 House Management System
 
-A full-featured backend system built with Django REST Framework for managing rental properties, tenants, and rent payments — complete with JWT authentication, payment tracking and Redis caching for performance.
+A hybrid Django application for managing rental properties, tenants, and rent records.
 
-## 🚀 Features
+The system provides:
 
-- ✅ Secure JWT-based authentication using SimpleJWT
-- 🏢 CRUD operations for Houses, Tenants, and Flat Buildings
-- ⚡ Redis caching for optimized performance
-- 🔐 Admin login/logout functionality
-- 📦 Fully decoupled API for frontend integration
-- MYSQL for storage
+REST API endpoints (JSON) for programmatic access and future integrations
 
-## 🛠️ Tech Stack
+Server-rendered web views (HTML) for landlords/caretakers to manage data directly in the browser
 
-- **Backend Framework:** Django 4+ / Django REST Framework
-- **Auth:** JWT (SimpleJWT)
-- **Database:** MySQL 
-- **Caching:** Redis
-- **Deployment-ready:** Production-optimized structure
+The project focuses on data management and tracking, not payment processing.
 
-## 🔧 API Endpoints
+🎯 Purpose
 
-### Authentication
-- `POST /api/token/` — Get access/refresh token  
-- `POST /api/token/refresh/` — Refresh token  
-- `POST /admin-login/` — Admin login  
-- `POST /admin-logout/` — Admin logout  
+Designed for landlords and caretakers who want:
 
-### Tenants
-- `GET /api/tenants/`
-- `POST /api/tenants/`
-- `GET /api/tenants/<id>/`
-- `PUT /api/tenants/<id>/`
-- `DELETE /api/tenants/<id>/`
+Clear visibility of tenants and occupancy
 
-### Houses / Flats / Rent
-- `GET /api/houses/`, `POST /api/houses/`, etc.
-- `GET /api/flat-buildings/` (includes Redis caching)
-- `GET /api/rent-payments/` and full CRUD support
+Accurate rent and payment records
 
-### Payments
-- `POST /initiate-stk/` — Initiate payment via M-Pesa  
-- `POST /payment-notification/` — Receive payment callback  
+A simple, self-hosted management system
 
-## 🧪 Running the Project Locally
+The application records payments but does not integrate directly with financial institutions.
 
-```bash
-# Clone the repo
+🧱 Architecture Overview
+
+Hybrid view layer
+
+Django REST Framework views for JSON APIs
+
+Django class-based and function-based views for HTML pages
+
+Shared domain models
+
+Houses, Buildings, Tenants, Rent Payments
+
+Single authentication system
+
+Django Auth + JWT (SimpleJWT)
+
+🚀 Features
+
+🔐 Authentication (session-based + JWT)
+
+🏢 Manage buildings, houses, and occupancy
+
+👥 Tenant lifecycle management (active/inactive)
+
+💰 Rent and payment tracking
+
+📊 Dashboard with summary statistics
+
+⚡ Optional caching using Django’s cache framework
+
+🧑‍💼 Django Admin for system-level administration
+
+🛠️ Tech Stack
+
+Framework: Django, Django REST Framework
+
+Authentication: Django Auth, JWT (SimpleJWT)
+
+Database: MySQL
+
+Caching: Django cache framework (Redis when available)
+
+Frontend: Server-rendered Django templates
+
+🔗 Application Structure
+Web (HTML)
+
+/ — Landing page
+
+/login/, /logout/, /register/
+
+/dashboard/
+
+CRUD pages for buildings, houses, tenants, and payments
+
+API (JSON)
+
+/api/tenants/
+
+/api/houses/
+
+/api/flat-buildings/
+
+/api/rent-payments/
+
+/api/token/, /api/token/refresh/
+
+All API endpoints are authenticated and scoped to the logged-in user.
+
+🚫 Out of Scope (by design)
+
+No direct M-Pesa or bank integrations
+
+No multi-tenant SaaS billing
+
+No frontend framework (React/Next.js)
+
+🧪 Running Locally
 git clone https://github.com/benjamaina/house-management.git
 cd house-management
 
-# Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate
 
-# Install dependencies
 pip install -r requirements.txt
-
-# Run migrations
 python manage.py migrate
-
-# Start the server
 python manage.py runserver
+
+📌 Project Status
+
+Actively developed
+
+Backend-focused
+
+Intended for small to medium property management use
+
+Architecture kept explicit and readable over compactness

@@ -1,6 +1,14 @@
 from rest_framework import serializers
 from .models import Tenant, House, RentPayment, FlatBuilding
 from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+from rest_framework import serializers
+
+User = get_user_model()
+
+
+
+
 
 class TenantSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -56,6 +64,31 @@ class RegisterAdminSerializer(serializers.ModelSerializer):
         user.is_staff = True
         user.save()
         return user
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    otp = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match.")
+        return data
+
+    def save(self):
+        username = self.validated_data['username']
+        new_password = self.validated_data['new_password']
+        otp = self.validated_data['otp']
+
+        user = User.objects.get(username=username)
+
+        # TODO: validate OTP here
+
+        user.set_password(new_password)
+        user.save()
+        return user
+
 
 class AdminLoginSerializer(serializers.Serializer):
     username = serializers.CharField()

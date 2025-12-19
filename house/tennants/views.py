@@ -9,7 +9,7 @@ from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Tenant, House, RentPayment, FlatBuilding
 from .serializers import (TenantSerializer, HouseSerializer, RentPaymentSerializer,
-                          FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer)
+                          FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer, ForgotPasswordSerializer)
 import logging
 import requests
 from django.conf import settings
@@ -376,6 +376,22 @@ def register(request):
 # ============================================================================
 # WEB TEMPLATE VIEWS (for normal users in browser)
 # ============================================================================
+
+# landing page
+def landing_page(request):
+    """Render the landing page"""
+    return render(request, 'landing.html')
+
+# view to change passowrd for normal users
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        
 
 # Dashboard
 @login_required

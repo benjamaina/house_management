@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - RentFlow</title>
+    <title>Register - RentFlow</title>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -35,7 +35,7 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
         /* Background Effects */
@@ -52,10 +52,10 @@
         .bg-pattern::before {
             content: '';
             position: absolute;
-            top: -30%;
-            right: -20%;
-            width: 700px;
-            height: 700px;
+            top: -20%;
+            left: -15%;
+            width: 600px;
+            height: 600px;
             background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
             border-radius: 50%;
         }
@@ -63,8 +63,8 @@
         .bg-pattern::after {
             content: '';
             position: absolute;
-            bottom: -40%;
-            left: -15%;
+            bottom: -30%;
+            right: -10%;
             width: 500px;
             height: 500px;
             background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, transparent 70%);
@@ -93,88 +93,88 @@
         }
 
         .geo-1 {
-            top: 15%;
-            left: 8%;
-            width: 60px;
-            height: 60px;
+            top: 10%;
+            right: 12%;
+            width: 70px;
+            height: 70px;
             border: 2px solid rgba(220, 241, 28, 0.2);
             transform: rotate(45deg);
         }
 
         .geo-2 {
-            bottom: 20%;
-            right: 10%;
-            width: 80px;
-            height: 80px;
+            bottom: 15%;
+            left: 8%;
+            width: 90px;
+            height: 90px;
             border: 2px solid rgba(59, 130, 246, 0.15);
             border-radius: 50%;
         }
 
         .geo-3 {
-            top: 60%;
-            left: 5%;
-            width: 40px;
-            height: 40px;
-            background: rgba(220, 241, 28, 0.08);
-            border-radius: 8px;
-            transform: rotate(15deg);
+            top: 55%;
+            right: 5%;
+            width: 50px;
+            height: 50px;
+            background: rgba(57, 228, 22, 0.08);
+            border-radius: 12px;
+            transform: rotate(-15deg);
         }
 
-        /* Login Container */
-        .login-container {
+        /* Register Container */
+        .register-container {
             position: relative;
             z-index: 1;
             width: 100%;
-            max-width: 440px;
+            max-width: 480px;
         }
 
-        .login-card {
+        .register-card {
             background: var(--dark-card);
             border: 1px solid var(--border);
             border-radius: 24px;
-            padding: 48px 40px;
+            padding: 44px 40px;
             position: relative;
             overflow: hidden;
         }
 
-        .login-card::before {
+        .register-card::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             height: 2px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            background: linear-gradient(90deg, transparent, var(--secondary), transparent);
         }
 
         /* Logo */
         .logo {
             text-align: center;
-            margin-bottom: 36px;
+            margin-bottom: 32px;
         }
 
         .logo-icon {
-            width: 64px;
-            height: 64px;
-            background: var(--primary);
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-radius: 16px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             transform: rotate(-5deg);
-            box-shadow: 0 10px 40px rgba(220, 241, 28, 0.3);
+            box-shadow: 0 10px 40px rgba(220, 241, 28, 0.25);
         }
 
         .logo-icon svg {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             fill: var(--dark);
         }
 
         .logo h1 {
             color: var(--text);
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
             letter-spacing: -0.5px;
         }
@@ -188,29 +188,29 @@
 
         .logo p {
             color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-top: 8px;
+            font-size: 0.9rem;
+            margin-top: 6px;
         }
 
         /* Form */
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 16px 18px;
+            padding: 14px 16px;
             background: var(--dark-elevated);
             border: 1px solid var(--border);
-            border-radius: 14px;
+            border-radius: 12px;
             color: var(--text);
             font-size: 1rem;
             font-family: inherit;
@@ -227,44 +227,8 @@
             color: var(--text-muted);
         }
 
-        /* Remember & Forgot */
-        .remember-forgot {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 28px;
-        }
-
-        .remember-me {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .remember-me input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            accent-color: var(--primary);
-            cursor: pointer;
-        }
-
-        .forgot-link {
-            color: var(--blue);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-        .forgot-link:hover {
-            color: var(--primary);
-        }
-
         /* Submit Button */
-        .btn-login {
+        .btn-register {
             width: 100%;
             padding: 16px 24px;
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
@@ -277,22 +241,19 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 8px 30px rgba(220, 241, 28, 0.25);
+            margin-top: 8px;
         }
 
-        .btn-login:hover {
+        .btn-register:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 40px rgba(220, 241, 28, 0.35);
-        }
-
-        .btn-login:active {
-            transform: translateY(0);
         }
 
         /* Divider */
         .divider {
             display: flex;
             align-items: center;
-            margin: 28px 0;
+            margin: 24px 0;
             color: var(--text-muted);
             font-size: 0.85rem;
         }
@@ -309,33 +270,50 @@
             padding: 0 16px;
         }
 
-        /* Register Link */
-        .register-link {
+        /* Login Link */
+        .login-link {
             text-align: center;
             color: var(--text-muted);
             font-size: 0.95rem;
         }
 
-        .register-link a {
+        .login-link a {
             color: var(--primary);
             text-decoration: none;
             font-weight: 600;
             transition: all 0.2s ease;
         }
 
-        .register-link a:hover {
+        .login-link a:hover {
             text-decoration: underline;
+        }
+
+        /* Back Link */
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+
+        .back-link a:hover {
+            color: var(--blue);
         }
 
         /* Alerts */
         .alert {
             padding: 14px 18px;
             border-radius: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
         .alert-error {
@@ -344,36 +322,19 @@
             color: #fca5a5;
         }
 
-        .alert-success {
-            background: rgba(57, 228, 22, 0.1);
-            border: 1px solid rgba(57, 228, 22, 0.2);
-            color: var(--secondary);
-        }
-
-        .errorlist {
-            list-style: none;
-            margin: 8px 0 0 0;
-            padding: 0;
-        }
-
-        .errorlist li {
+        .error-message {
             color: #fca5a5;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            margin-top: 6px;
         }
 
-        @media (max-width: 480px) {
-            .login-card {
-                padding: 36px 28px;
+        @media (max-width: 520px) {
+            .register-card {
+                padding: 32px 24px;
             }
 
             .logo h1 {
-                font-size: 1.5rem;
-            }
-
-            .remember-forgot {
-                flex-direction: column;
-                gap: 14px;
-                align-items: flex-start;
+                font-size: 1.4rem;
             }
         }
     </style>
@@ -386,81 +347,53 @@
     <div class="geo-shape geo-2"></div>
     <div class="geo-shape geo-3"></div>
 
-    <div class="login-container">
-        <div class="login-card">
+    <div class="register-container">
+        <div class="register-card">
             <div class="logo">
                 <div class="logo-icon">
                     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 3L4 9v12h5v-7h6v7h5V9l-8-6z"/>
                     </svg>
                 </div>
-                <h1>Rent<span>Flow</span></h1>
-                <p>Sign in to your account</p>
+                <h1>Create Your <span>Account</span></h1>
+                <p>Join RentFlow and manage your properties</p>
             </div>
-
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            {% if form.non_field_errors %}
-                <div class="alert alert-error">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <form method="post" action="{% url 'login' %}">
+            
+            <form method="post" novalidate>
                 {% csrf_token %}
                 
-                <div class="form-group">
-                    <label for="id_username">Username</label>
-                    <input type="text" name="username" id="id_username" placeholder="Enter your username" required autofocus>
-                    {% if form.username.errors %}
-                        <ul class="errorlist">
-                            {% for error in form.username.errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-
-                <div class="form-group">
-                    <label for="id_password">Password</label>
-                    <input type="password" name="password" id="id_password" placeholder="Enter your password" required>
-                    {% if form.password.errors %}
-                        <ul class="errorlist">
-                            {% for error in form.password.errors %}
-                                <li>{{ error }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </div>
-
-                <div class="remember-forgot">
-                    <label class="remember-me">
-                        <input type="checkbox" name="remember">
-                        Remember me
-                    </label>
-                    <a href="{% url 'password_reset' %}" class="forgot-link">Forgot password?</a>
-                </div>
-
-                <input type="hidden" name="next" value="{{ next }}">
+                {% if form.errors %}
+                    <div class="alert alert-error">
+                        <p>Please correct the errors below.</p>
+                    </div>
+                {% endif %}
                 
-                <button type="submit" class="btn-login">Sign In</button>
+                {% for field in form %}
+                    <div class="form-group">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="error-message">
+                                {{ field.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                
+                <button type="submit" class="btn-register">Create Account</button>
             </form>
 
             <div class="divider">
                 <span>or</span>
             </div>
 
-            <p class="register-link">
-                Don't have an account? <a href="{% url 'register' %}">Create one</a>
+            <p class="login-link">
+                Already have an account? <a href="{% url 'login' %}">Sign in</a>
             </p>
+            
+            <div class="back-link">
+                <a href="/">← Back to Home</a>
+            </div>
         </div>
     </div>
 </body>

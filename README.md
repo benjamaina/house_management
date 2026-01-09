@@ -1,72 +1,87 @@
-🏠 House Management System
+🏠 House Management System — Technical Highlights
 
-A hybrid Django application for managing rental properties, tenants, and rent records.
-
-The system provides:
-
-REST API endpoints (JSON) for programmatic access and future integrations
-
-Server-rendered web views (HTML) for landlords/caretakers to manage data directly in the browser
-
-The project focuses on data management and tracking, not payment processing.
+A hybrid Django application for managing rental properties, tenants, and rent records, showcasing backend development, relational data handling, and performance optimization.
 
 🎯 Purpose
 
-Designed for landlords and caretakers who want:
+Demonstrates real-world backend development skills:
 
-Clear visibility of tenants and occupancy
+Relational data modeling
 
-Accurate rent and payment records
+CRUD operations via API and HTML views
 
-A simple, self-hosted management system
+Performance optimization and testing
 
-The application records payments but does not integrate directly with financial institutions.
+Designed to showcase clear thinking and problem-solving for technical reviewers.
 
 🧱 Architecture Overview
 
-Hybrid view layer
+Backend Framework: Django + Django REST Framework
 
-Django REST Framework views for JSON APIs
+Database: MySQL (relational models)
 
-Django class-based and function-based views for HTML pages
+Caching: Django cache framework (Redis compatible)
 
-Shared domain models
+Authentication: Django Auth + JWT (SimpleJWT)
 
-Houses, Buildings, Tenants, Rent Payments
+Views:
 
-Single authentication system
+HTML (server-rendered, class/function-based views)
 
-Django Auth + JWT (SimpleJWT)
+JSON REST API (CRUD endpoints)
 
-🚀 Features
+Testing & Performance:
 
-🔐 Authentication (session-based + JWT)
+Unit testing with Django’s test framework
 
-🏢 Manage buildings, houses, and occupancy
+Stress testing with Locust
 
-👥 Tenant lifecycle management (active/inactive)
+Pagination for large datasets
 
-💰 Rent and payment tracking
+Efficient relational fetching with select_related
 
-📊 Dashboard with summary statistics
+⚡ Key Features (Technical)
 
-⚡ Optional caching using Django’s cache framework
+Relational Data Handling:
 
-🧑‍💼 Django Admin for system-level administration
+Houses, Buildings, Tenants, RentPayments
 
-🛠️ Tech Stack
+select_related for optimized joins
 
-Framework: Django, Django REST Framework
+Demonstrates relational thinking without raw SQL
 
-Authentication: Django Auth, JWT (SimpleJWT)
+API & Web Interface:
 
-Database: MySQL
+Full CRUD operations via REST API (JSON)
 
-Caching: Django cache framework (Redis when available)
+Server-rendered HTML pages for admin/user actions
 
-Frontend: Server-rendered Django templates
+Performance & Scalability:
+
+Caching to reduce database load
+
+Pagination for large tables
+
+Optional request throttling
+
+Locust stress testing
+
+Authentication & Security:
+
+Session-based authentication for web
+
+JWT for API endpoints
+
+Scoped access per user
+
+Testing & Quality:
+
+Unit tests covering core models and API endpoints
+
+Documentation and usage examples
 
 🔗 Application Structure
+
 Web (HTML)
 
 / — Landing page
@@ -75,47 +90,29 @@ Web (HTML)
 
 /dashboard/
 
-CRUD pages for buildings, houses, tenants, and payments
+CRUD pages for Buildings, Houses, Tenants, Payments
 
 API (JSON)
 
-/api/tenants/
-
-/api/houses/
-
-/api/flat-buildings/
-
-/api/rent-payments/
+/api/tenants/, /api/houses/, /api/flat-buildings/, /api/rent-payments/
 
 /api/token/, /api/token/refresh/
 
-All API endpoints are authenticated and scoped to the logged-in user.
+Fully authenticated endpoints
 
-🚫 Out of Scope (by design)
-
-No direct M-Pesa or bank integrations
-
-No multi-tenant SaaS billing
-
-No frontend framework (React/Next.js)
-
-🧪 Running Locally
+🛠️ How to Run Locally
 git clone https://github.com/benjamaina/house-management.git
 cd house-management
-
 python -m venv venv
 source venv/bin/activate
-
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 
 📌 Project Status
 
-Actively developed
+Actively developed, backend-focused
 
-Backend-focused
+Designed for small to medium property management
 
-Intended for small to medium property management use
-
-Architecture kept explicit and readable over compactness
+Emphasis on readable architecture and technical clarity

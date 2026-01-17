@@ -1023,7 +1023,7 @@
     <div class="grid-bg"></div>
 
     <nav>
-        <a href="/" class="logo">
+        <a href="{% url 'landing' %}" class="logo">
             <div class="logo-icon">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
@@ -1035,7 +1035,7 @@
         <div class="nav-links">
             <a href="#how-it-works">How It Works</a>
             <a href="#features">Features</a>
-            <a href="login/" class="nav-cta">Login</a>
+            <a href="{% url 'login' %}" class="nav-cta">Login</a>
         </div>
     </nav>
 
@@ -1051,7 +1051,7 @@
                 <p class="hero-subtitle">
                     Stop juggling spreadsheets and M-Pesa messages. Track tenants, payments, and balances in one clean dashboard.
                 </p>
-                <a href="register/" class="hero-cta">
+                <a href="{% url 'register' %}" class="hero-cta">
                     Get Started Free
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -1314,7 +1314,7 @@
         <section class="final-cta">
             <h2>Ready to simplify rent collection?</h2>
             <p>Start managing your properties the smart way. Free to get started.</p>
-            <a href="register/" class="cta-button">
+            <a href="{% url 'register' %}" class="cta-button">
                 Create Free Account
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -1326,8 +1326,8 @@
     <footer>
         <p class="footer-text">© 2024 RentFlow. Built for landlords who value their time.</p>
         <div class="footer-links">
-            <a href="login/">Login</a>
-            <a href="register/">Register</a>
+            <a href="{% url 'login' %}">Login</a>
+            <a href="{% url 'register' %}">Register</a>
         </div>
     </footer>
 </body>

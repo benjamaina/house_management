@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Tenant, House, RentPayment, FlatBuilding
+from .models import Tenant, House, Payment, FlatBuilding, RentCharge
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
@@ -39,11 +39,11 @@ class FlatBuildingSerializer(serializers.ModelSerializer):
         model = FlatBuilding
         fields = '__all__'
 
-class RentPaymentSerializer(serializers.ModelSerializer):
+class PaymentSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
-        model = RentPayment
+        model = Payment
         fields = '__all__'
 
 class RegisterAdminSerializer(serializers.ModelSerializer):
@@ -112,3 +112,10 @@ class AdminLoginSerializer(serializers.Serializer):
         data['token'] = str(refresh.access_token)
         data['refresh'] = str(refresh)
         return data
+
+class RentChargeSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = RentCharge
+        fields = '__all__'

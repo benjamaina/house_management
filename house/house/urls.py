@@ -42,3 +42,6 @@ urlpatterns = [
     path("dashboard/", login_required(views.dashboard), name="dashboard"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),    
 ]
+from django.urls import reverse_lazy
+
+LOGOUT_REDIRECT_URL = reverse_lazy('landing')

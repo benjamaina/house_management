@@ -1,11 +1,11 @@
 from django.urls import path
-from .views import (TenantListView,HouseDetailView,TenantDetailView, 
-                    FlatBuildingDetailView, user_login, AdminLogoutView, HouseListView,FlatBuildingListView, RentPaymentListView, 
-                    RegisterAdminView, RegisterUserView, OverduePaymentsView,
+from .views import (PaymentDetailView, TenantListView,HouseDetailView,TenantDetailView, 
+                    FlatBuildingDetailView, user_login, AdminLogoutView, HouseListView,FlatBuildingListView, PaymentListView, 
+                    RegisterAdminView, RegisterUserView,
                     BuildingListView, BuildingCreateView, BuildingDetailView, BuildingUpdateView, BuildingDeleteView,
                     HouseCreateView, HouseListView , HouseUpdateView, HouseDeleteView, HouseDetailView, dashboard,
                     TenantCreateView, TenantUpdateView, TenantDeleteView, TenantDetailView,
-                    PaymentListView, PaymentCreateView,
+                    PaymentListView, PaymentCreateView, RentChargeListView, RentChargeDetailView,RentChargeCreateView, RentChargeUpdateView, bulk_create_rent_charges
 )
 
 urlpatterns = [
@@ -20,7 +20,7 @@ urlpatterns = [
     path("flats/", FlatBuildingListView.as_view(), name="flat-list"),
     path('flats/new/', FlatBuildingDetailView.as_view(), name='flat-update'),
     path('flats/<int:pk>/', FlatBuildingDetailView.as_view(), name='flat-detail'),
-    path('rentpayments/', RentPaymentListView.as_view(), name='rent-payment-list'),
+    path('payments/', PaymentListView.as_view(), name='payment-list'),
     path('register/user/', RegisterUserView.as_view(), name='register-user'),
 
     
@@ -57,5 +57,15 @@ urlpatterns = [
     # Payments
     path('payments/', PaymentListView.as_view(), name='payment_list'),
     path('payments/add/', PaymentCreateView.as_view(), name='payment_add'),
-    path('payments/overdue/', OverduePaymentsView.as_view(), name='overdue_payments'),
+    path('payments/<int:pk>/', PaymentListView.as_view(), name='payment_detail'),
+    path('payments/<int:pk>/edit/', PaymentDetailView.as_view(), name='payment_edit'),
+
+    # Rent Charges
+    path('rent-charges/', RentChargeListView.as_view(), name='rent_charge_list'),
+    path('rent-charges/add/', RentChargeCreateView.as_view(), name='rent_charge_add'),
+    path('rent-charges/<int:pk>/', RentChargeDetailView.as_view(), name='rent_charge_detail'),
+    path('rent-charges/<int:pk>/edit/', RentChargeUpdateView.as_view(), name='rent_charge_edit'),
+    path('rent-charges/bulk-create/', bulk_create_rent_charges, name='rent_charge_bulk_create'),
+
+
 ]

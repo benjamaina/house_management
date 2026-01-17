@@ -1,5 +1,5 @@
 from django import forms
-from .models import House, RentPayment, Tenant, FlatBuilding, PaymentHistory
+from .models import House, Payment, Tenant, FlatBuilding, RentCharge
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
@@ -20,9 +20,9 @@ class HouseForm(forms.ModelForm):
         model = House
         fields = '__all__'
 
-class RentPaymentForm(forms.ModelForm):
+class PaymentForm(forms.ModelForm):
     class Meta:
-        model = RentPayment
+        model = Payment
         fields = '__all__'
 
 
@@ -36,9 +36,9 @@ class FlatBuildingForm(forms.ModelForm):
         model = FlatBuilding
         fields = '__all__'
 
-class PaymentHistoryForm(forms.ModelForm):
+class RentChargeForm(forms.ModelForm):
     class Meta:
-        model = PaymentHistory
+        model = RentCharge
         fields = '__all__'
 
 # Additional forms can be added here as needed

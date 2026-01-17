@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Record Payment - House Management{% endblock %}
+{% block title %}{% if object %}Edit Payment{% else %}Record Payment{% endif %} - House Management{% endblock %}
 
 {% block content %}
 <div class="breadcrumb">
@@ -8,11 +8,11 @@
     <span>/</span>
     <a href="{% url 'payment_list' %}">Payments</a>
     <span>/</span>
-    <span>Record Payment</span>
+    <span>{% if object %}Edit Payment{% else %}Record Payment{% endif %}</span>
 </div>
 
 <div class="page-header">
-    <h1 class="page-title">Record <span>Payment</span></h1>
+    <h1 class="page-title">{% if object %}Edit{% else %}Record{% endif %} <span>Payment</span></h1>
 </div>
 
 <div class="card" style="max-width: 600px;">
@@ -41,57 +41,38 @@
                 <option value="">Select a tenant</option>
                 {% for tenant in form.fields.tenant.queryset %}
                 <option value="{{ tenant.pk }}" {% if form.tenant.value == tenant.pk|stringformat:"i" %}selected{% endif %}>
-                    {{ tenant.full_name }} - {{ tenant.house }} (KES {{ tenant.rent }}/month)
+                    {{ tenant.full_name }}{% if tenant.house %} - {{ tenant.house.house_number }}{% endif %}
                 </option>
                 {% endfor %}
             </select>
             <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
-                Only active tenants with assigned houses are shown
+                Select the tenant making this payment
             </small>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-                <label for="id_rent_month" class="form-label">Rent Month *</label>
-                <select name="rent_month" id="id_rent_month" class="form-control" required>
-                    <option value="">Select month</option>
-                    <option value="1" {% if form.rent_month.value == '1' %}selected{% endif %}>January</option>
-                    <option value="2" {% if form.rent_month.value == '2' %}selected{% endif %}>February</option>
-                    <option value="3" {% if form.rent_month.value == '3' %}selected{% endif %}>March</option>
-                    <option value="4" {% if form.rent_month.value == '4' %}selected{% endif %}>April</option>
-                    <option value="5" {% if form.rent_month.value == '5' %}selected{% endif %}>May</option>
-                    <option value="6" {% if form.rent_month.value == '6' %}selected{% endif %}>June</option>
-                    <option value="7" {% if form.rent_month.value == '7' %}selected{% endif %}>July</option>
-                    <option value="8" {% if form.rent_month.value == '8' %}selected{% endif %}>August</option>
-                    <option value="9" {% if form.rent_month.value == '9' %}selected{% endif %}>September</option>
-                    <option value="10" {% if form.rent_month.value == '10' %}selected{% endif %}>October</option>
-                    <option value="11" {% if form.rent_month.value == '11' %}selected{% endif %}>November</option>
-                    <option value="12" {% if form.rent_month.value == '12' %}selected{% endif %}>December</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="id_year" class="form-label">Year *</label>
-                <input type="number" 
-                       name="year" 
-                       id="id_year" 
-                       class="form-control" 
-                       value="{{ form.year.value|default:'' }}"
-                       min="2020"
-                       max="2099"
-                       placeholder="e.g., 2024"
-                       required>
-            </div>
+        <div class="form-group">
+            <label for="id_rent_charge" class="form-label">Rent Charge Period *</label>
+            <select name="rent_charge" id="id_rent_charge" class="form-control" required>
+                <option value="">Select rent charge</option>
+                {% for charge in form.fields.rent_charge.queryset %}
+                <option value="{{ charge.pk }}" {% if form.rent_charge.value == charge.pk|stringformat:"i" %}selected{% endif %}>
+                    {{ charge.get_month_display }} {{ charge.year }} - {{ charge.tenant.full_name }} (Balance: KES {{ charge.balance }})
+                </option>
+                {% endfor %}
+            </select>
+            <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                Select the rent period this payment is for
+            </small>
         </div>
 
         <div class="form-group">
-            <label for="id_amount_paid" class="form-label">Amount Paid (KES) *</label>
+            <label for="id_amount" class="form-label">Amount Paid (KES) *</label>
             <input type="number" 
-                   name="amount_paid" 
-                   id="id_amount_paid" 
+                   name="amount" 
+                   id="id_amount" 
                    class="form-control" 
-                   value="{{ form.amount_paid.value|default:'0' }}"
-                   min="0"
+                   value="{{ form.amount.value|default:'' }}"
+                   min="0.01"
                    step="0.01"
                    placeholder="Enter amount paid"
                    required>
@@ -100,6 +81,7 @@
         <div class="form-group">
             <label for="id_payment_method" class="form-label">Payment Method *</label>
             <select name="payment_method" id="id_payment_method" class="form-control" required>
+                <option value="">Select method</option>
                 <option value="cash" {% if form.payment_method.value == 'cash' %}selected{% endif %}>Cash</option>
                 <option value="mobile_money" {% if form.payment_method.value == 'mobile_money' %}selected{% endif %}>Mobile Money (M-Pesa)</option>
                 <option value="bank_transfer" {% if form.payment_method.value == 'bank_transfer' %}selected{% endif %}>Bank Transfer</option>
@@ -107,10 +89,37 @@
             </select>
         </div>
 
+        <div class="form-group" id="reference-group">
+            <label for="id_payment_reference" class="form-label">Payment Reference</label>
+            <textarea name="payment_reference" 
+                      id="id_payment_reference" 
+                      class="form-control" 
+                      rows="2"
+                      placeholder="e.g., M-Pesa transaction code, cheque number">{{ form.payment_reference.value|default:'' }}</textarea>
+            <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                Required for non-cash payments (M-Pesa code, bank reference, etc.)
+            </small>
+        </div>
+
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-            <button type="submit" class="btn btn-primary">Record Payment</button>
+            <button type="submit" class="btn btn-primary">{% if object %}Update{% else %}Record{% endif %} Payment</button>
             <a href="{% url 'payment_list' %}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>
+
+<script>
+    // Show/hide reference field based on payment method
+    document.getElementById('id_payment_method').addEventListener('change', function() {
+        const refGroup = document.getElementById('reference-group');
+        const refInput = document.getElementById('id_payment_reference');
+        if (this.value === 'cash') {
+            refGroup.style.opacity = '0.6';
+            refInput.removeAttribute('required');
+        } else {
+            refGroup.style.opacity = '1';
+            refInput.setAttribute('required', 'required');
+        }
+    });
+</script>
 {% endblock %}

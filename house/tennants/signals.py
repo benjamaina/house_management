@@ -2,7 +2,7 @@ from django.conf import settings
 from django.db.models.signals import post_save,post_delete,pre_delete
 from django.dispatch import receiver
 from django.core.mail import send_mail
-from .models import RentPayment, House
+from .models import Payment, House
 from django.core.exceptions import ValidationError
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
@@ -38,15 +38,15 @@ def update_house_occupation_on_save(sender, instance, **kwargs):
         instance.house.auto_change_occupation()
 
 
-@receiver(post_save, sender=RentPayment)
+@receiver(post_save, sender=Payment)
 def set_payment_status_on_save(sender, instance, **kwargs):
     # automatically recalc is_paid on save
-    rent_amount = instance.rent_amount or 0
-    instance.is_paid = instance.amount_paid >= rent_amount
+    rent_amount = instance.amount or 0
+    instance.is_paid = instance.amount >= rent_amount
     # prevent recursive save signals
-    
+    instance.save(update_fields=['is_paid'])
 
-@receiver(pre_delete, sender=RentPayment)
+@receiver(pre_delete, sender=Payment)
 def adjust_tenant_balance_on_delete(sender, instance, **kwargs):
     tenant = instance.tenant
     if tenant:

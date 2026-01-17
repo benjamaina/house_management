@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Details - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'payment_list' %}">Payments</a>
+    <span>/</span>
+    <span>Payment Details</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Payment <span>Details</span></h1>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{% url 'payment_edit' payment.pk %}" class="btn btn-secondary">✏️ Edit</a>
+        <a href="{% url 'payment_list' %}" class="btn btn-secondary">← Back to List</a>
+    </div>
+</div>
+
+<div class="card" style="max-width: 700px;">
+    <div class="card-header">
+        <h2 class="card-title">Payment #{{ payment.pk }}</h2>
+        <span class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1rem;">
+            KES {{ payment.amount }}
+        </span>
+    </div>
+
+    <div style="display: grid; gap: 1.5rem; margin-top: 1.5rem;">
+        <!-- Tenant Info -->
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Tenant:</span>
+            <a href="{% url 'tenant_detail' payment.tenant.pk %}" style="color: var(--accent-yellow); text-decoration: none; font-weight: 500;">
+                {{ payment.tenant.full_name }}
+            </a>
+        </div>
+
+        <!-- House Info -->
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">House:</span>
+            <span style="color: var(--text-primary);">
+                {% if payment.tenant.house %}
+                <a href="{% url 'house_detail' payment.tenant.house.pk %}" style="color: var(--primary-blue); text-decoration: none;">
+                    {{ payment.tenant.house.house_number }}
+                </a>
+                {% else %}
+                -
+                {% endif %}
+            </span>
+        </div>
+
+        <!-- Rent Charge Period -->
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Rent Period:</span>
+            <a href="{% url 'rent_charge_detail' payment.rent_charge.pk %}" style="color: var(--text-secondary); text-decoration: none;">
+                {{ payment.rent_charge.get_month_display }} {{ payment.rent_charge.year }}
+            </a>
+        </div>
+
+        <!-- Amount -->
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Amount Paid:</span>
+            <span style="color: var(--accent-green); font-weight: 600; font-size: 1.1rem;">
+                KES {{ payment.amount }}
+            </span>
+        </div>
+
+        <!-- Payment Method -->
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Payment Method:</span>
+            <span style="color: var(--text-primary);">{{ payment.get_payment_method_display }}</span>
+        </div>
+
+        <!-- Reference -->
+        {% if payment.payment_reference %}
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Reference:</span>
+            <span style="color: var(--text-primary); font-family: monospace; background: var(--bg-secondary); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                {{ payment.payment_reference }}
+            </span>
+        </div>
+        {% endif %}
+
+        <!-- Date -->
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Paid At:</span>
+            <span style="color: var(--text-primary);">{{ payment.paid_at|date:"F d, Y \a\t H:i" }}</span>
+        </div>
+    </div>
+
+    <!-- Rent Charge Summary -->
+    <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <h3 style="color: var(--text-primary); font-size: 1rem; margin-bottom: 1rem;">Rent Charge Summary</h3>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.25rem;">Amount Due</div>
+                <div style="color: var(--text-primary); font-weight: 600;">KES {{ payment.rent_charge.amount_due }}</div>
+            </div>
+            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.25rem;">Total Paid</div>
+                <div style="color: var(--accent-green); font-weight: 600;">KES {{ payment.rent_charge.total_paid }}</div>
+            </div>
+            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.25rem;">Balance</div>
+                <div style="color: {% if payment.rent_charge.balance > 0 %}var(--danger){% else %}var(--success){% endif %}; font-weight: 600;">
+                    KES {{ payment.rent_charge.balance }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Create Rent Charges - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'rent_charge_list' %}">Rent Charges</a>
+    <span>/</span>
+    <span>Bulk Create</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Bulk Create <span>Rent Charges</span></h1>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2>Generate Monthly Rent Charges</h2>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            Automatically create rent charges for all active tenants for a specific month
+        </p>
+    </div>
+    
+    <form method="post" class="form-grid" style="padding: 2rem;">
+        {% csrf_token %}
+        
+        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div class="form-group">
+                <label for="month" class="form-label">Month</label>
+                <select name="month" id="month" class="form-control" required>
+                    <option value="">Select Month</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="year" class="form-label">Year</label>
+                <input type="number" name="year" id="year" class="form-control" 
+                       value="{{ current_year }}" min="2020" max="2099" required>
+            </div>
+        </div>
+        
+        <!-- Preview Section -->
+        <div class="preview-section" style="margin-top: 2rem; padding: 1.5rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
+            <h3 style="color: var(--accent-yellow); margin-bottom: 1rem; font-size: 1.1rem;">
+                📋 Active Tenants ({{ active_tenants_count }})
+            </h3>
+            
+            {% if active_tenants %}
+            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="select-all" checked 
+                                           style="width: 18px; height: 18px; accent-color: var(--primary-blue);">
+                                    Select All
+                                </label>
+                            </th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">Tenant</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">House</th>
+                            <th style="position: sticky; top: 0; background: var(--bg-card);">Rent Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tenant in active_tenants %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="tenant_ids" value="{{ tenant.pk }}" checked
+                                       class="tenant-checkbox"
+                                       style="width: 18px; height: 18px; accent-color: var(--primary-blue);">
+                            </td>
+                            <td style="color: var(--text-primary); font-weight: 500;">
+                                {{ tenant.full_name }}
+                            </td>
+                            <td>
+                                {% if tenant.house %}
+                                {{ tenant.house.house_number }}
+                                {% else %}
+                                <span style="color: var(--text-muted);">No house assigned</span>
+                                {% endif %}
+                            </td>
+                            <td style="color: var(--accent-green); font-weight: 600;">
+                                {% if tenant.house %}
+                                KES {{ tenant.house.house_rent_amount }}
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding: 2rem; text-align: center;">
+                <p style="color: var(--text-muted);">No active tenants found. Add tenants first.</p>
+                <a href="{% url 'tenant_add' %}" class="btn btn-primary" style="margin-top: 1rem;">+ Add Tenant</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Summary -->
+        {% if active_tenants %}
+        <div class="summary-section" style="margin-top: 1.5rem; padding: 1rem 1.5rem; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="color: var(--text-muted);">Selected tenants:</span>
+                <strong id="selected-count" style="color: var(--text-primary); margin-left: 0.5rem;">{{ active_tenants_count }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--text-muted);">Total expected:</span>
+                <strong style="color: var(--accent-green); margin-left: 0.5rem;">KES <span id="total-amount">{{ total_rent }}</span></strong>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Warning for existing charges -->
+        <div class="warning-section" style="margin-top: 1.5rem; padding: 1rem 1.5rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px;">
+            <p style="color: var(--accent-yellow); font-size: 0.9rem;">
+                ⚠️ <strong>Note:</strong> Rent charges that already exist for the selected month/year will be skipped to avoid duplicates.
+            </p>
+        </div>
+        
+        <div class="form-actions" style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end;">
+            <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary">Cancel</a>
+            {% if active_tenants %}
+            <button type="submit" class="btn btn-primary">
+                🚀 Generate Rent Charges
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+<div style="position: fixed; top: 100px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 0.75rem;">
+    {% for message in messages %}
+    <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-danger{% else %}alert-info{% endif %}" 
+         style="animation: slideIn 0.3s ease;">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.tenant-checkbox');
+    const selectedCount = document.getElementById('selected-count');
+    
+    function updateCount() {
+        const checked = document.querySelectorAll('.tenant-checkbox:checked').length;
+        if (selectedCount) {
+            selectedCount.textContent = checked;
+        }
+    }
+    
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateCount();
+        });
+    }
+    
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (selectAll) {
+                selectAll.checked = document.querySelectorAll('.tenant-checkbox:checked').length === checkboxes.length;
+            }
+            updateCount();
+        });
+    });
+});
+</script>
+
+<style>
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.alert {
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.alert-success {
+    background: rgba(34, 197, 94, 0.2);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    color: var(--accent-green);
+}
+
+.alert-danger {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: var(--danger);
+}
+
+.alert-info {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: var(--primary-blue);
+}
+</style>
+{% endblock %}

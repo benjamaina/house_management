@@ -40,8 +40,9 @@
         <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
         <a href="{% url 'house_add' %}" class="btn btn-secondary">+ Add House</a>
         <a href="{% url 'tenant_add' %}" class="btn btn-secondary">+ Add Tenant</a>
+        <a href="{% url 'rent_charge_add' %}" class="btn btn-secondary">+ Create Rent Charge</a>
         <a href="{% url 'payment_add' %}" class="btn btn-secondary">+ Record Payment</a>
-        <a href="{% url 'overdue_payments' %}" class="btn btn-danger">View Overdue</a>
+
     </div>
 </div>
 
@@ -107,27 +108,19 @@
                 <tr>
                     <th>Tenant</th>
                     <th>Amount</th>
-                    <th>Month/Year</th>
+                    <th>Rent Period</th>
                     <th>Method</th>
-                    <th>Status</th>
-                    <th>Date</th>
+                    <th>Paid At</th>
                 </tr>
             </thead>
             <tbody>
                 {% for payment in recent_payments %}
                 <tr>
                     <td style="color: var(--text-primary); font-weight: 500;">{{ payment.tenant.full_name }}</td>
-                    <td style="color: var(--accent-green);">KES {{ payment.amount_paid }}</td>
-                    <td>{{ payment.get_rent_month_display }} {{ payment.year }}</td>
+                    <td style="color: var(--accent-green);">KES {{ payment.amount }}</td>
+                    <td>{{ payment.rent_charge.get_month_display }} {{ payment.rent_charge.year }}</td>
                     <td>{{ payment.get_payment_method_display }}</td>
-                    <td>
-                        {% if payment.is_paid %}
-                        <span class="badge badge-success">Paid</span>
-                        {% else %}
-                        <span class="badge badge-warning">Partial</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ payment.payment_date }}</td>
+                    <td>{{ payment.paid_at|date:"M d, Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -137,6 +130,53 @@
     <div class="empty-state">
         <h3>No payments recorded yet</h3>
         <p>Payments will appear here once recorded</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Unpaid Rent Charges -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Unpaid Rent Charges</h2>
+        <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    
+    {% if unpaid_charges %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Period</th>
+                    <th>Amount Due</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for charge in unpaid_charges %}
+                <tr>
+                    <td style="color: var(--text-primary); font-weight: 500;">{{ charge.tenant.full_name }}</td>
+                    <td>{{ charge.get_month_display }} {{ charge.year }}</td>
+                    <td>KES {{ charge.amount_due }}</td>
+                    <td style="color: var(--accent-green);">KES {{ charge.total_paid }}</td>
+                    <td style="color: var(--danger); font-weight: 600;">KES {{ charge.balance }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'rent_charge_detail' charge.pk %}" class="btn-icon" title="View">👁</a>
+                            <a href="{% url 'payment_add' %}" class="btn-icon" title="Record Payment" style="border-color: var(--accent-green); color: var(--accent-green);">💰</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>All rent is paid!</h3>
+        <p>No outstanding balances at this time</p>
     </div>
     {% endif %}
 </div>

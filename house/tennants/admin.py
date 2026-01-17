@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Tenant, House, RentPayment,FlatBuilding,PaymentHistory
+from .models import Tenant, House, Payment,FlatBuilding,RentCharge
 from django.contrib.auth.models import Group
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -43,12 +43,10 @@ class HouseAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-@admin.register(RentPayment)
-class RentPaymentAdmin(admin.ModelAdmin):
-    list_display = ("user",'tenant', 'amount_paid', 'payment_date', 'year', 'rent_month', 'payment_method','is_paid', 'rent_amount', 'balance')
-    list_filter = ('payment_date',)
-    ordering = ('-payment_date',)
-    readonly_fields = ('rent_amount', 'balance',)
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('tenant', 'payment_method','paid_at', 'rent_charge', 'payment_reference',"amount")
+    readonly_fields = ('amount', 'balance',)
 
     def house(self, obj):
         return obj.tenant.house.house_number if obj.tenant and obj.tenant.house else None
@@ -82,13 +80,12 @@ class FlatBuildingAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-
-@admin.register(PaymentHistory)
-class PaymentHistoryAdmin(admin.ModelAdmin):
-    list_display = ("user",'tenant', 'house', 'payment_amount', 'payment_date', 'payment_method')
-    list_filter = ('payment_date',)
-    ordering = ('-payment_date',)
+@admin.register(RentCharge)
+class RentChargeAdmin(admin.ModelAdmin):
+    list_display = ('tenant', 'year', 'is_paid', 'month', 'amount_due')
+    list_filter = ('month', 'year')
+    ordering = ('-year',)
+    search_fields = ('tenant__full_name',)
 
     def save_model(self, request, obj, form, change):
-        obj.auto_set_fields()
         super().save_model(request, obj, form, change)

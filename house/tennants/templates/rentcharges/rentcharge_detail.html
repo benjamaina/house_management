@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Rent Charge Details - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'rent_charge_list' %}">Rent Charges</a>
+    <span>/</span>
+    <span>{{ rentcharge.get_month_display }} {{ rentcharge.year }}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Rent Charge <span>Details</span></h1>
+    <div style="display: flex; gap: 0.75rem;">
+        <a href="{% url 'payment_add' %}" class="btn btn-primary">💰 Record Payment</a>
+        <a href="{% url 'rent_charge_edit' rentcharge.pk %}" class="btn btn-secondary">✏️ Edit</a>
+        <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary">← Back to List</a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-value">KES {{ rentcharge.amount_due }}</div>
+        <div class="stat-label">Amount Due</div>
+    </div>
+    <div class="stat-card" style="border-color: var(--accent-green);">
+        <div class="stat-value" style="color: var(--accent-green);">KES {{ rentcharge.total_paid }}</div>
+        <div class="stat-label">Total Paid</div>
+    </div>
+    <div class="stat-card" style="border-color: {% if rentcharge.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+        <div class="stat-value" style="color: {% if rentcharge.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+            KES {{ rentcharge.balance }}
+        </div>
+        <div class="stat-label">Balance</div>
+    </div>
+    <div class="stat-card">
+        {% if rentcharge.is_paid %}
+        <span class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1rem;">Fully Paid</span>
+        {% elif rentcharge.total_paid > 0 %}
+        <span class="badge badge-warning" style="font-size: 1rem; padding: 0.5rem 1rem;">Partial</span>
+        {% else %}
+        <span class="badge badge-danger" style="font-size: 1rem; padding: 0.5rem 1rem;">Unpaid</span>
+        {% endif %}
+        <div class="stat-label" style="margin-top: 0.5rem;">Status</div>
+    </div>
+</div>
+
+<!-- Charge Details -->
+<div class="card" style="max-width: 700px; margin-bottom: 2rem;">
+    <div class="card-header">
+        <h2 class="card-title">Charge Information</h2>
+    </div>
+
+    <div style="display: grid; gap: 1.25rem; margin-top: 1rem;">
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Tenant:</span>
+            <a href="{% url 'tenant_detail' rentcharge.tenant.pk %}" style="color: var(--accent-yellow); text-decoration: none; font-weight: 500;">
+                {{ rentcharge.tenant.full_name }}
+            </a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">House:</span>
+            <span style="color: var(--text-primary);">
+                {% if rentcharge.tenant.house %}
+                <a href="{% url 'house_detail' rentcharge.tenant.house.pk %}" style="color: var(--primary-blue); text-decoration: none;">
+                    {{ rentcharge.tenant.house.house_number }}
+                </a>
+                {% else %}
+                -
+                {% endif %}
+            </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Period:</span>
+            <span style="color: var(--text-primary); font-weight: 500;">{{ rentcharge.get_month_display }} {{ rentcharge.year }}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.5rem; align-items: start;">
+            <span style="color: var(--text-muted); font-size: 0.9rem;">Phone:</span>
+            <span style="color: var(--text-primary);">{{ rentcharge.tenant.phone }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Payment History -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Payment History</h2>
+        <a href="{% url 'payment_add' %}" class="btn btn-primary btn-sm">+ Add Payment</a>
+    </div>
+
+    {% if rentcharge.payments.all %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in rentcharge.payments.all %}
+                <tr>
+                    <td>{{ payment.paid_at|date:"M d, Y H:i" }}</td>
+                    <td style="color: var(--accent-green); font-weight: 600;">KES {{ payment.amount }}</td>
+                    <td>{{ payment.get_payment_method_display }}</td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">
+                        {{ payment.payment_reference|default:"-" }}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'payment_detail' payment.pk %}" class="btn-icon" title="View">👁</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h3>No payments yet</h3>
+        <p>Record a payment for this rent charge</p>
+        <a href="{% url 'payment_add' %}" class="btn btn-primary" style="margin-top: 1rem;">💰 Record Payment</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

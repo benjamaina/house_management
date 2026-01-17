@@ -33,7 +33,7 @@ JSON REST API (CRUD endpoints)
 Testing & Performance:
 
 Unit testing with Django’s test framework
-
+🔐 Authentication (JWT)
 Stress testing with Locust
 
 Pagination for large datasets

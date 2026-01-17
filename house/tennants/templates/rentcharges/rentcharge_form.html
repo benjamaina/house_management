@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}{% if object %}Edit Rent Charge{% else %}Create Rent Charge{% endif %} - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <a href="{% url 'rent_charge_list' %}">Rent Charges</a>
+    <span>/</span>
+    <span>{% if object %}Edit Rent Charge{% else %}Create Rent Charge{% endif %}</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">{% if object %}Edit{% else %}Create{% endif %} <span>Rent Charge</span></h1>
+</div>
+
+<div class="card" style="max-width: 600px;">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        
+        {% if form.errors %}
+        <div class="alert alert-error">
+            <strong>Please correct the errors below:</strong>
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="id_tenant" class="form-label">Tenant *</label>
+            <select name="tenant" id="id_tenant" class="form-control" required>
+                <option value="">Select a tenant</option>
+                {% for tenant in form.fields.tenant.queryset %}
+                <option value="{{ tenant.pk }}" {% if form.tenant.value == tenant.pk|stringformat:"i" %}selected{% endif %}>
+                    {{ tenant.full_name }}{% if tenant.house %} - {{ tenant.house.house_number }} (KES {{ tenant.house.house_rent_amount }}/month){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                The rent amount will be auto-filled from the tenant's house
+            </small>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+                <label for="id_month" class="form-label">Month *</label>
+                <select name="month" id="id_month" class="form-control" required>
+                    <option value="">Select month</option>
+                    <option value="1" {% if form.month.value == '1' or form.month.value == 1 %}selected{% endif %}>January</option>
+                    <option value="2" {% if form.month.value == '2' or form.month.value == 2 %}selected{% endif %}>February</option>
+                    <option value="3" {% if form.month.value == '3' or form.month.value == 3 %}selected{% endif %}>March</option>
+                    <option value="4" {% if form.month.value == '4' or form.month.value == 4 %}selected{% endif %}>April</option>
+                    <option value="5" {% if form.month.value == '5' or form.month.value == 5 %}selected{% endif %}>May</option>
+                    <option value="6" {% if form.month.value == '6' or form.month.value == 6 %}selected{% endif %}>June</option>
+                    <option value="7" {% if form.month.value == '7' or form.month.value == 7 %}selected{% endif %}>July</option>
+                    <option value="8" {% if form.month.value == '8' or form.month.value == 8 %}selected{% endif %}>August</option>
+                    <option value="9" {% if form.month.value == '9' or form.month.value == 9 %}selected{% endif %}>September</option>
+                    <option value="10" {% if form.month.value == '10' or form.month.value == 10 %}selected{% endif %}>October</option>
+                    <option value="11" {% if form.month.value == '11' or form.month.value == 11 %}selected{% endif %}>November</option>
+                    <option value="12" {% if form.month.value == '12' or form.month.value == 12 %}selected{% endif %}>December</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="id_year" class="form-label">Year *</label>
+                <input type="number" 
+                       name="year" 
+                       id="id_year" 
+                       class="form-control" 
+                       value="{{ form.year.value|default:'' }}"
+                       min="2020"
+                       max="2099"
+                       placeholder="e.g., 2024"
+                       required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="id_amount_due" class="form-label">Amount Due (KES)</label>
+            <input type="number" 
+                   name="amount_due" 
+                   id="id_amount_due" 
+                   class="form-control" 
+                   value="{{ form.amount_due.value|default:'' }}"
+                   min="0"
+                   step="0.01"
+                   placeholder="Leave blank to use house rent amount">
+            <small style="color: var(--text-muted); display: block; margin-top: 0.5rem;">
+                Optional - if left blank, the tenant's house rent amount will be used
+            </small>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary">{% if object %}Update{% else %}Create{% endif %} Rent Charge</button>
+            <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

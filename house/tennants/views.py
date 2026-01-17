@@ -7,8 +7,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers, generics
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Tenant, House, RentPayment, FlatBuilding
-from .serializers import (TenantSerializer, HouseSerializer, RentPaymentSerializer,
+from .models import Tenant, House, Payment, FlatBuilding, RentCharge
+from .serializers import (TenantSerializer, HouseSerializer, PaymentSerializer,
                           FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer, ForgotPasswordSerializer)
 import logging
 import requests
@@ -41,7 +41,8 @@ from django.urls import reverse_lazy
 from django.contrib import messages
 from django.shortcuts import render
 from django.core.exceptions import ValidationError
-from .models import Tenant, House, RentPayment, FlatBuilding
+from django.utils import timezone
+
 
 
 
@@ -224,14 +225,13 @@ class FlatBuildingDetailView(generics.RetrieveUpdateDestroyAPIView):
 # RENT PAYMENT VIEWS
 # ============================================================================
 
-class RentPaymentListView(generics.ListCreateAPIView):
-    serializer_class = RentPaymentSerializer
+class PaymentListView(generics.ListCreateAPIView):
+    serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Only show paid payments for current user"""
-        return RentPayment.objects.filter(
-            is_paid=True, 
+        return Payment.objects.filter(
             user=self.request.user
         ).order_by('id')
 
@@ -244,17 +244,17 @@ class RentPaymentListView(generics.ListCreateAPIView):
         return response
 
     def perform_create(self, serializer):
-        rent_payment = serializer.save(user=self.request.user)
+        payment = serializer.save(user=self.request.user)
         clear_cache_pattern(self.request, "rent_payments")
 
 
-class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = RentPaymentSerializer
+class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filter to user's payments, optionally by tenant"""
-        queryset = RentPayment.objects.filter(user=self.request.user)
+        queryset = Payment.objects.filter(user=self.request.user)
         
         tenant_id = self.request.query_params.get('tenant_id')
         if tenant_id:
@@ -262,6 +262,42 @@ class RentPaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
         
         return queryset.order_by('id')
 
+
+class RentChargeListView(generics.ListCreateAPIView):
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Only show rent charges for current user"""
+        return RentCharge.objects.filter(
+            user=self.request.user
+        ).order_by('id')
+
+    def get(self, request, *args, **kwargs):
+        cached = get_cached_response(request, prefix="rent_charges")
+        if cached:
+            return Response(cached)
+        response = super().get(request, *args, **kwargs)
+        set_cached_response(request, response.data, prefix="rent_charges")
+        return response
+
+    def perform_create(self, serializer):
+        rent_charge = serializer.save(user=self.request.user)
+        clear_cache_pattern(self.request, "rent_charges")
+
+class RentChargeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter to user's rent charges, optionally by tenant"""
+        queryset = RentCharge.objects.filter(user=self.request.user)
+        
+        tenant_id = self.request.query_params.get('tenant_id')
+        if tenant_id:
+            queryset = queryset.filter(tenant_id=tenant_id)
+        
+        return queryset.order_by('id')
 
 # ============================================================================
 # AUTHENTICATION VIEWS
@@ -355,16 +391,21 @@ def register(request):
         form = RegistrationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            # will set the user admin to true to access admin UI
+            # set staff/superuser flags if needed
             user.is_staff = False
             user.is_superuser = False
             user.save()
-            # login(request, user)  # Auto-login after registration
-             
+            
+            # ✅ Automatically log the user in
+            login(request, user)
+            
+            # ✅ Redirect into the app (e.g., dashboard)
+            return redirect("dashboard")  # replace "dashboard" with your main app URL name
+            
     else:
         form = RegistrationForm()
     
-    return render(request, "registration/register.html", {"form": form})
+    return render(request, "register.html", {"form": form})
 
 
 
@@ -403,9 +444,9 @@ def dashboard(request):
     active_tenants = Tenant.objects.filter(user=request.user, is_active=True).count()
     
     # Recent payments (last 5)
-    recent_payments = RentPayment.objects.filter(
+    recent_payments = Payment.objects.filter(
         user=request.user
-    ).order_by('-payment_date')[:5]
+    ).order_by('-paid_at')[:5]
     
     context = {
         'buildings': buildings,
@@ -659,51 +700,216 @@ class TenantDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         # Get payment history
         context['payments'] = self.object.rent_payments.all().order_by('-payment_date')
-        context['overdue_payments'] = self.object.rent_payments.filter(is_paid=False)
+        # context['overdue_payments'] = self.object.rent_payments.filter(is_paid=False)
         return context
 
 
 # ============================================================================
 # PAYMENT VIEWS
 # ============================================================================
+class PaymentDetailView(LoginRequiredMixin, DetailView):
+    model = Payment
+    template_name = 'payments/payment_detail.html'
+    context_object_name = 'payment'
+    
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+    
+class PaymentUpdateView(LoginRequiredMixin, UpdateView):
+    model = Payment
+    template_name = 'payments/payment_form.html'
+    success_url = reverse_lazy('payment_list')
+    
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user)
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Only show user's tenants
+        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Payment updated successfully!')
+        return super().form_valid(form)
 
 class PaymentListView(LoginRequiredMixin, ListView):
-    model = RentPayment
+    model = Payment
     template_name = 'payments/payment_list.html'
     context_object_name = 'payments'
     
     def get_queryset(self):
-        return RentPayment.objects.filter(user=self.request.user).order_by('-payment_date')
-
-
+        queryset = Payment.objects.filter(user=self.request.user)
+        # Optional filter by tenant
+        tenant_id = self.request.GET.get('tenant')
+        if tenant_id:
+            queryset = queryset.filter(tenant_id=tenant_id)
+        return queryset.order_by('-paid_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tenants'] = Tenant.objects.filter(user=self.request.user)
+        return context
+    
 class PaymentCreateView(LoginRequiredMixin, CreateView):
-    model = RentPayment
-    fields = ['tenant', 'rent_month', 'year', 'amount_paid', 'payment_method']
+    model = Payment
+    fields = [
+        "tenant",
+        "rent_charge",
+        "amount",
+        "payment_reference",
+    ]
     template_name = 'payments/payment_form.html'
     success_url = reverse_lazy('payment_list')
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
-        # Only show active tenants
-        form.fields['tenant'].queryset = Tenant.objects.filter(
-            user=self.request.user, 
-            is_active=True
-        )
+        # Only show user's tenants
+        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
         return form
     
     def form_valid(self, form):
         form.instance.user = self.request.user
         messages.success(self.request, 'Payment recorded successfully!')
         return super().form_valid(form)
+    
+class RentChargeCreateView(LoginRequiredMixin, CreateView):
+    model = RentCharge
+    fields = ['tenant', 'year', 'month', 'amount_due']
+    template_name = 'rentcharges/rentcharge_form.html'
+    success_url = reverse_lazy('rentcharge_list')
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Only show user's tenants
+        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+        return form
+    
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        messages.success(self.request, 'Rent charge created successfully!')
+        return super().form_valid(form)
 
 
-class OverduePaymentsView(LoginRequiredMixin, ListView):
-    model = RentPayment
-    template_name = 'payments/overdue_payments.html'
-    context_object_name = 'overdue_payments'
+class RentChargeDetailView(LoginRequiredMixin, DetailView):
+    model = RentCharge
+    template_name = 'rentcharges/rentcharge_detail.html'
+    context_object_name = 'rentcharge'
     
     def get_queryset(self):
-        return RentPayment.objects.filter(
-            user=self.request.user,
-            is_paid=False
-        ).order_by('year', 'rent_month')
+        return RentCharge.objects.filter(user=self.request.user)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
+    
+# class RentChargeListView(LoginRequiredMixin, ListView):
+#     model = RentCharge
+#     template_name = 'rentcharges/rentcharge_list.html'
+#     context_object_name = 'rentcharges'
+    
+#     def get_queryset(self):
+#         queryset = RentCharge.objects.filter(user=self.request.user)
+#         # Optional filter by tenant
+#         tenant_id = self.request.GET.get('tenant')
+#         if tenant_id:
+#             queryset = queryset.filter(tenant_id=tenant_id)
+#         return queryset.order_by('-month', '-year')
+    
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['tenants'] = Tenant.objects.filter(user=self.request.user)
+#         return context
+
+
+class RentChargeListView(LoginRequiredMixin, ListView):
+    model = RentCharge
+    template_name = 'rentcharges/rentcharge_list.html'
+    context_object_name = 'rentcharges'
+
+    def get_queryset(self):
+        # fetch all for this user
+        queryset = RentCharge.objects.filter(user=self.request.user)
+        
+        # optional tenant filter
+        tenant_id = self.request.GET.get('tenant')
+        if tenant_id:
+            queryset = queryset.filter(tenant_id=tenant_id)
+
+        # filter unpaid using the property
+        unpaid_queryset = [rc for rc in queryset if not rc.is_paid]
+
+        # sort by year/month descending
+        return sorted(unpaid_queryset, key=lambda rc: (rc.year, rc.month), reverse=True)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tenants'] = Tenant.objects.filter(user=self.request.user)
+        return context
+
+    
+class RentChargeUpdateView(LoginRequiredMixin, UpdateView):
+    model = RentCharge
+    template_name = 'rentcharges/rentcharge_form.html'
+    success_url = reverse_lazy('rentcharge_list')
+    
+    def get_queryset(self):
+        return RentCharge.objects.filter(user=self.request.user)
+    
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        # Only show user's tenants
+        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+        return form
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Rent charge updated successfully!')
+        return super().form_valid(form)
+
+
+
+@login_required
+def bulk_create_rent_charges(request):
+    current_year = timezone.now().year
+
+    # active_tenants = Tenant.objects.filter(is_active=True).select_related("house")
+    # filter by current user
+    active_tenants = Tenant.objects.filter(user=request.user, is_active=True).select_related("house")
+
+    active_tenants_count = active_tenants.count()
+
+    # Calculate expected total rent safely
+    total_rent = sum(
+        tenant.house.house_rent_amount
+        for tenant in active_tenants
+        if tenant.house
+    )
+
+    if request.method == "POST":
+        month = request.POST.get("month")
+        year = request.POST.get("year")
+        tenant_ids = request.POST.getlist("tenant_ids")
+
+        if not month or not year:
+            messages.error(request, "Please select month and year.")
+            return redirect("rentcharges/rentcharge_bulk_create.html")
+
+        # 🚫 Do NOT create anything yet — safe stub
+        messages.success(
+            request,
+            f"Preview OK. {len(tenant_ids)} tenants selected for {month}/{year}."
+        )
+        return redirect("rentcharges/rentcharge_bulk_create.html")
+
+    context = {
+        "current_year": current_year,
+        "active_tenants": active_tenants,
+        "active_tenants_count": active_tenants_count,
+        "total_rent": total_rent,
+    }
+
+    return render(request, "rentcharges/rentcharge_bulk_create.html", context)

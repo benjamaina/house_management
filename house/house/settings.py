@@ -76,8 +76,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_redis",
     "corsheaders",
-    
-
+    "django_extensions",
 ]
 
 
@@ -138,12 +137,12 @@ UNFOLD = {
                     {
                         "title": "Rent payments",
                         "icon": "payments",
-                        "link": "/admin/tennants/rentpayment/",
+                        "link": "/admin/tennants/payment/",
                     },
                     {
-                        "title": "Payment historys",
+                        "title": "Rent charges",
                         "icon": "history",
-                        "link": "/admin/tennants/paymenthistory/",
+                        "link": "/admin/tennants/rentcharge/",
                     },
                 ],
             },

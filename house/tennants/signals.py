@@ -37,14 +37,13 @@ def update_house_occupation_on_save(sender, instance, **kwargs):
     if instance.house:
         instance.house.auto_change_occupation()
 
+# whenever a Payment is created if ghe amount field is blunk we getthe amount from the house rent
+@receiver(pre_save, sender=Payment)
+def set_payment_amount(sender, instance, **kwargs):
+    if instance.amount is None or instance.amount == 0:
+        if instance.tenant and instance.tenant.house:
+            instance.amount = instance.tenant.house.house_rent_amount
 
-@receiver(post_save, sender=Payment)
-def set_payment_status_on_save(sender, instance, **kwargs):
-    # automatically recalc is_paid on save
-    rent_amount = instance.amount or 0
-    instance.is_paid = instance.amount >= rent_amount
-    # prevent recursive save signals
-    instance.save(update_fields=['is_paid'])
 
 @receiver(pre_delete, sender=Payment)
 def adjust_tenant_balance_on_delete(sender, instance, **kwargs):

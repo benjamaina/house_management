@@ -155,7 +155,6 @@ class Tenant(models.Model):
     def __str__(self):
         return self.full_name
 
-
 # ------------------------------
 # RentCharge Model (Obligation)
 # ------------------------------
@@ -176,7 +175,7 @@ class RentCharge(models.Model):
 
     def save(self, *args, **kwargs):
         # auto-set amount_due from tenant's house
-        if not self.amount_due and self.tenant and self.tenant.house:
+        if self.amount_due is None and self.tenant and self.tenant.house:
             self.amount_due = self.tenant.house.house_rent_amount
         super().save(*args, **kwargs)
 
@@ -215,14 +214,19 @@ class Payment(models.Model):
     payment_reference = models.TextField(blank=True, null=True)
     paid_at = models.DateTimeField(auto_now_add=True)
 
-    # use is_paidfor updating rent charge status
-    
-
     def clean(self):
+        super().clean()
         if self.payment_method != "cash" and not self.payment_reference:
             raise ValidationError({
                 "payment_reference": "Reference required for non-cash payments"
             })
+        
+        if self.rent_charge and self.tenant != self.rent_charge.tenant:
+            raise ValidationError("Payment tenant must match rent charge tenant")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.amount} paid by {self.tenant.full_name} via {self.payment_method} on {self.paid_at.date()}"

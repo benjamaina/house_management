@@ -32,7 +32,7 @@ import json
 import logging
 from .forms import RegistrationForm
 from django.shortcuts import render, redirect
-
+from django.db import transaction
 
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -781,7 +781,7 @@ class RentChargeCreateView(LoginRequiredMixin, CreateView):
     model = RentCharge
     fields = ['tenant', 'year', 'month', 'amount_due']
     template_name = 'rentcharges/rentcharge_form.html'
-    success_url = reverse_lazy('rentcharge_list')
+    success_url = reverse_lazy('rent_charge_list')
     
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -789,11 +789,7 @@ class RentChargeCreateView(LoginRequiredMixin, CreateView):
         form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
         return form
     
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        messages.success(self.request, 'Rent charge created successfully!')
-        return super().form_valid(form)
-
+ 
 
 class RentChargeDetailView(LoginRequiredMixin, DetailView):
     model = RentCharge
@@ -807,45 +803,17 @@ class RentChargeDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         return context
     
-# class RentChargeListView(LoginRequiredMixin, ListView):
-#     model = RentCharge
-#     template_name = 'rentcharges/rentcharge_list.html'
-#     context_object_name = 'rentcharges'
-    
-#     def get_queryset(self):
-#         queryset = RentCharge.objects.filter(user=self.request.user)
-#         # Optional filter by tenant
-#         tenant_id = self.request.GET.get('tenant')
-#         if tenant_id:
-#             queryset = queryset.filter(tenant_id=tenant_id)
-#         return queryset.order_by('-month', '-year')
-    
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['tenants'] = Tenant.objects.filter(user=self.request.user)
-#         return context
 
 
 class RentChargeListView(LoginRequiredMixin, ListView):
     model = RentCharge
-    template_name = 'rentcharges/rentcharge_list.html'
+    template_name = 'rentcharges/rent_charge_list.html'
     context_object_name = 'rentcharges'
 
+    # display only rent charges for current user
     def get_queryset(self):
-        # fetch all for this user
-        queryset = RentCharge.objects.filter(user=self.request.user)
-        
-        # optional tenant filter
-        tenant_id = self.request.GET.get('tenant')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-
-        # filter unpaid using the property
-        unpaid_queryset = [rc for rc in queryset if not rc.is_paid]
-
-        # sort by year/month descending
-        return sorted(unpaid_queryset, key=lambda rc: (rc.year, rc.month), reverse=True)
-
+        return RentCharge.objects.filter(user=self.request.user).order_by('-year', '-month')
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['tenants'] = Tenant.objects.filter(user=self.request.user)
@@ -855,7 +823,7 @@ class RentChargeListView(LoginRequiredMixin, ListView):
 class RentChargeUpdateView(LoginRequiredMixin, UpdateView):
     model = RentCharge
     template_name = 'rentcharges/rentcharge_form.html'
-    success_url = reverse_lazy('rentcharge_list')
+    success_url = reverse_lazy('rent_charge_list')
     
     def get_queryset(self):
         return RentCharge.objects.filter(user=self.request.user)
@@ -871,14 +839,17 @@ class RentChargeUpdateView(LoginRequiredMixin, UpdateView):
         return super().form_valid(form)
 
 
-
 @login_required
 def bulk_create_rent_charges(request):
     current_year = timezone.now().year
+    current_month = timezone.now().month
 
-    # active_tenants = Tenant.objects.filter(is_active=True).select_related("house")
-    # filter by current user
-    active_tenants = Tenant.objects.filter(user=request.user, is_active=True).select_related("house")
+    # Filter by current user
+    active_tenants = Tenant.objects.filter(
+        user=request.user, 
+        is_active=True,
+        house__isnull=False  # Only tenants with houses
+    ).select_related("house")
 
     active_tenants_count = active_tenants.count()
 
@@ -896,20 +867,86 @@ def bulk_create_rent_charges(request):
 
         if not month or not year:
             messages.error(request, "Please select month and year.")
-            return redirect("rentcharges/rentcharge_bulk_create.html")
+            return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
 
-        # 🚫 Do NOT create anything yet — safe stub
-        messages.success(
-            request,
-            f"Preview OK. {len(tenant_ids)} tenants selected for {month}/{year}."
-        )
-        return redirect("rentcharges/rentcharge_bulk_create.html")
+        if not tenant_ids:
+            messages.warning(request, "No tenants selected.")
+            return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
+
+        # Convert to integers
+        try:
+            month = int(month)
+            year = int(year)
+            tenant_ids = [int(tid) for tid in tenant_ids]
+        except ValueError:
+            messages.error(request, "Invalid month, year, or tenant selection.")
+            return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
+
+        # Create rent charges
+        created_count = 0
+        skipped_count = 0
+        error_count = 0
+
+        with transaction.atomic():
+            for tenant_id in tenant_ids:
+                try:
+                    tenant = Tenant.objects.get(id=tenant_id, user=request.user)
+                    
+                    # Check if already exists
+                    if RentCharge.objects.filter(
+                        tenant=tenant,
+                        year=year,
+                        month=month
+                    ).exists():
+                        skipped_count += 1
+                        continue
+                    
+                    # Create rent charge
+                    RentCharge.objects.create(
+                        user=request.user,
+                        tenant=tenant,
+                        year=year,
+                        month=month,
+                        amount_due=tenant.house.house_rent_amount
+                    )
+                    created_count += 1
+                    
+                except Tenant.DoesNotExist:
+                    error_count += 1
+                    logger.error(f"Tenant {tenant_id} not found for user {request.user.id}")
+                except Exception as e:
+                    error_count += 1
+                    logger.error(f"Error creating rent charge for tenant {tenant_id}: {str(e)}")
+
+        # Success messages
+        month_name = dict(RentCharge.MONTH_CHOICES).get(month, month)
+        
+        if created_count > 0:
+            messages.success(
+                request, 
+                f"✓ Successfully created {created_count} rent charge(s) for {month_name} {year}"
+            )
+        if skipped_count > 0:
+            messages.info(
+                request, 
+                f"⊘ Skipped {skipped_count} - charges already exist"
+            )
+        if error_count > 0:
+            messages.error(
+                request, 
+                f"✗ Failed to create {error_count} charge(s)"
+            )
+        
+        return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
 
     context = {
         "current_year": current_year,
+        "current_month": current_month,
         "active_tenants": active_tenants,
         "active_tenants_count": active_tenants_count,
         "total_rent": total_rent,
+        "months": RentCharge.MONTH_CHOICES,
+        "years": range(current_year - 1, current_year + 2),
     }
 
     return render(request, "rentcharges/rentcharge_bulk_create.html", context)

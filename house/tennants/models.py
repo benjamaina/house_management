@@ -26,6 +26,7 @@ class FlatBuilding(models.Model):
     def vacant_houses(self):
         return self.get_vacant_count()
 
+    
     def tenant_count(self):
         return self.houses.filter(tenants__is_active=True).distinct().count()
 
@@ -165,7 +166,7 @@ class RentCharge(models.Model):
         (5, 'May'), (6, 'June'), (7, 'July'), (8, 'August'),
         (9, 'September'), (10, 'October'), (11, 'November'), (12, 'December')
     ]
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="rent_charges")
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="rent_charges", db_index=True)
     year = models.IntegerField()
     month = models.IntegerField(choices=MONTH_CHOICES)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
@@ -209,10 +210,10 @@ class Payment(models.Model):
 
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="payments")
     rent_charge = models.ForeignKey(RentCharge, on_delete=models.CASCADE, related_name="payments")
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, db_index=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
     payment_reference = models.TextField(blank=True, null=True)
-    paid_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def clean(self):
         super().clean()

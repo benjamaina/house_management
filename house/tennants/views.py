@@ -448,6 +448,12 @@ def dashboard(request):
         user=request.user
     ).order_by('-paid_at')[:5]
     
+    # Calculate percentage of occupied houses (avoid division by zero)
+    if total_houses:
+        percent_occupied = round((occupied_houses / total_houses) * 100, 2)
+    else:
+        percent_occupied = 0.0
+    
     context = {
         'buildings': buildings,
         'total_houses': total_houses,
@@ -455,6 +461,7 @@ def dashboard(request):
         'vacant_houses': total_houses - occupied_houses,
         'active_tenants': active_tenants,
         'recent_payments': recent_payments,
+        'percent_occupied': percent_occupied,
     }
     return render(request, 'dashboard.html', context)
 
@@ -507,9 +514,14 @@ class BuildingDeleteView(LoginRequiredMixin, DeleteView):
         return FlatBuilding.objects.filter(user=self.request.user)
     
     def delete(self, request, *args, **kwargs):
+        # first check if building has houses and those houses have tenants
+        building = self.get_object()
+        if building.houses.filter(occupation=True).exists():
+            messages.error(self.request, 'Cannot delete building with occupied houses!')
+            return redirect('building_list')
         messages.success(self.request, 'Building deleted successfully!')
         return super().delete(request, *args, **kwargs)
-
+        
 
 class BuildingDetailView(LoginRequiredMixin, DetailView):
     model = FlatBuilding
@@ -762,6 +774,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         "rent_charge",
         "amount",
         "payment_reference",
+        "payment_method",
     ]
     template_name = 'payments/payment_form.html'
     success_url = reverse_lazy('payment_list')

@@ -217,7 +217,7 @@ WSGI_APPLICATION = "house.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-# db for sqlite3
+# # db for sqlite3
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.sqlite3",

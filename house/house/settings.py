@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
-DEBUG = True
+DEBUG = False
 REDIS_HOST = os.getenv("REDIS_URL")
 
 # twilio settings
@@ -224,11 +224,11 @@ WSGI_APPLICATION = "house.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-# # db for sqlite3
-<<<<<<< HEAD
+# # # db for sqlite3
+# # set up for mysql for pythone everywhere platform
 # DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.sqlite3",
@@ -236,25 +236,16 @@ WSGI_APPLICATION = "house.wsgi.application"
 #     }
 # }
 # set up for mysql for pythone everywhere platform
-=======
->>>>>>> 9385127 ( added a notification featur to the app to allow sending sms to tenants)
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('NAME'),
+        'USER': os.getenv('USER'),
+        'PASSWORD': os.getenv('PASSWORD'),
+        'HOST': os.getenv('HOST'),
+        'PORT': os.getenv('PORT'),
     }
 }
-# set up for mysql for pythone everywhere platform
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': os.getenv('NAME'),
-#         'USER': os.getenv('USER'),
-#         'PASSWORD': os.getenv('PASSWORD'),
-#         'HOST': os.getenv('HOST'),
-#         'PORT': os.getenv('PORT'),
-#     }
-# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

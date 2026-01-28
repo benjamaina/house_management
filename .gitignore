@@ -18,6 +18,9 @@ venv/
 env/
 web-venv/
 .env
+.env
+house/.env
+
 # IDEs and editors
 .vscode/
 .idea/

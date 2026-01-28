@@ -11,7 +11,45 @@
 
 <div class="page-header">
     <h1 class="page-title">All <span>Tenants</span></h1>
-    <a href="{% url 'tenant_add' %}" class="btn btn-primary">+ Add Tenant</a>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+            ℹ️ How It Works
+        </button>
+        <a href="{% url 'tenant_add' %}" class="btn btn-primary">+ Add Tenant</a>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>👥 About Tenants</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What are Tenants?</strong></p>
+            <p>Tenants are the people who rent your houses. Each tenant is assigned to one house and receives monthly rent charges.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Tenant Information:</strong></p>
+            <ul>
+                <li><strong>Full Name:</strong> Tenant's complete name</li>
+                <li><strong>Contact:</strong> Phone number and email for communication</li>
+                <li><strong>ID Number:</strong> Government-issued identification</li>
+                <li><strong>House:</strong> The assigned rental unit</li>
+                <li><strong>Rent Due Date:</strong> Monthly date when rent is due</li>
+                <li><strong>Balance:</strong> Total outstanding rent owed</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>SMS Notifications:</strong></p>
+            <p>Tenants can receive automated SMS reminders before rent is due. Enable this in the tenant's profile.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Status:</strong></p>
+            <ul>
+                <li><strong>Active:</strong> Currently renting</li>
+                <li><strong>Inactive:</strong> No longer renting (moved out)</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
 <!-- Filter Bar -->

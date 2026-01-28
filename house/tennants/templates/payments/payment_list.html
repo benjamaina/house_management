@@ -11,9 +11,41 @@
 
 <div class="page-header">
     <h1 class="page-title">All <span>Payments</span></h1>
-    <div style="display: flex; gap: 0.75rem;">
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+            ℹ️ How It Works
+        </button>
         <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary">View Rent Charges</a>
         <a href="{% url 'payment_add' %}" class="btn btn-primary">+ Record Payment</a>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>💰 About Payments</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What are Payments?</strong></p>
+            <p>Payments are records of money received from tenants. Each payment is linked to a specific rent charge and reduces the tenant's balance.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Payment Details:</strong></p>
+            <ul>
+                <li><strong>Tenant:</strong> Who made the payment</li>
+                <li><strong>Rent Charge:</strong> Which month/year the payment applies to</li>
+                <li><strong>Amount:</strong> The payment amount in KES</li>
+                <li><strong>Method:</strong> Cash, Mobile Money, Bank Transfer, or Cheque</li>
+                <li><strong>Reference:</strong> Transaction ID (required for non-cash payments)</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Partial Payments:</strong></p>
+            <p>You can record multiple partial payments against a single rent charge. The system tracks the remaining balance automatically.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Important:</strong></p>
+            <p>Create a rent charge first before recording payments. Payments must be linked to an existing rent charge.</p>
+        </div>
     </div>
 </div>
 

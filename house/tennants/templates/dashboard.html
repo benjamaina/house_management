@@ -5,6 +5,41 @@
 {% block content %}
 <div class="page-header">
     <h1 class="page-title">Welcome back, <span>{{ request.user.username }}</span></h1>
+    <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+        ℹ️ How It Works
+    </button>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>🏠 About Dashboard</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What is this page?</strong></p>
+            <p>The Dashboard gives you a quick overview of your entire property management portfolio at a glance.</p>
+            
+            <p style="margin-top: 1rem;"><strong>What you'll see:</strong></p>
+            <ul>
+                <li><strong>Stats Overview:</strong> Total buildings, houses, occupancy, and tenant count</li>
+                <li><strong>Quick Actions:</strong> Fast access to add buildings, houses, tenants, and payments</li>
+                <li><strong>Buildings Table:</strong> Overview of all your buildings with occupancy status</li>
+                <li><strong>Recent Payments:</strong> Last 5 payments received</li>
+                <li><strong>Unpaid Charges:</strong> Outstanding rent balances requiring attention</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Getting Started:</strong></p>
+            <ol>
+                <li>Add a building first</li>
+                <li>Add houses to that building</li>
+                <li>Assign tenants to houses</li>
+                <li>Create monthly rent charges</li>
+                <li>Record payments as they come in</li>
+            </ol>
+        </div>
+    </div>
 </div>
 
 <!-- Stats Grid -->
@@ -29,6 +64,10 @@
         <div class="stat-value">{{ active_tenants }}</div>
         <div class="stat-label">Active Tenants</div>
     </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ percent_occupied }}%</div>
+        <div class="stat-label">Occupancy Rate</div>
+    </div>
 </div>
 
 <!-- Quick Actions -->
@@ -40,9 +79,9 @@
         <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
         <a href="{% url 'house_add' %}" class="btn btn-secondary">+ Add House</a>
         <a href="{% url 'tenant_add' %}" class="btn btn-secondary">+ Add Tenant</a>
-        <a href="{% url 'rent_charge_add' %}" class="btn btn-secondary">+ Create Rent Charge</a>
+        <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary" style="border-color: var(--primary); color: var(--primary);">⚡ Bulk Create Charges</a>
         <a href="{% url 'payment_add' %}" class="btn btn-secondary">+ Record Payment</a>
-
+        <a href="{% url 'send_rent_reminders' %}" class="btn btn-secondary" style="border-color: var(--blue); color: var(--blue);">📱 Send Reminders</a>
     </div>
 </div>
 

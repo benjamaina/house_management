@@ -11,7 +11,43 @@
 
 <div class="page-header">
     <h1 class="page-title">All <span>Houses</span></h1>
-    <a href="{% url 'house_add' %}" class="btn btn-primary">+ Add House</a>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+            ℹ️ How It Works
+        </button>
+        <a href="{% url 'house_add' %}" class="btn btn-primary">+ Add House</a>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>🏠 About Houses</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What are Houses?</strong></p>
+            <p>Houses are individual rental units within your buildings. Each house can be assigned to one active tenant at a time.</p>
+            
+            <p style="margin-top: 1rem;"><strong>House Details:</strong></p>
+            <ul>
+                <li><strong>House Number:</strong> Unique identifier within the building (e.g., A1, B2)</li>
+                <li><strong>Building:</strong> Which property this house belongs to</li>
+                <li><strong>Size:</strong> Description like "1 bedroom", "2 bedroom", "studio"</li>
+                <li><strong>Rent Amount:</strong> Monthly rent for this unit</li>
+                <li><strong>Deposit:</strong> Security deposit required</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Occupancy:</strong></p>
+            <ul>
+                <li><strong>Occupied:</strong> An active tenant is assigned</li>
+                <li><strong>Vacant:</strong> Available for new tenants</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Note:</strong> Only vacant houses can be assigned to new tenants.</p>
+        </div>
+    </div>
 </div>
 
 <!-- Filter Bar -->

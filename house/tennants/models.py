@@ -116,6 +116,11 @@ class Tenant(models.Model):
     rent_due_date = models.DateField(default=datetime.now)
     house = models.ForeignKey(House, on_delete=models.CASCADE, related_name='tenants', blank=True, null=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    sms_notifications = models.BooleanField(default=True, db_index=True)
+    last_notification_sent = models.DateTimeField(blank=True, null=True)
+    reminder_days_before = models.IntegerField(default=3, db_index=True)
+    last_reminder_sent = models.DateTimeField(blank=True, null=True)
+    
 
     @property
     def building_name(self):
@@ -170,6 +175,8 @@ class RentCharge(models.Model):
     year = models.IntegerField()
     month = models.IntegerField(choices=MONTH_CHOICES)
     amount_due = models.DecimalField(max_digits=10, decimal_places=2)
+    reminder_sent = models.BooleanField(default=False)
+   
 
     class Meta:
         unique_together = ("tenant", "year", "month")

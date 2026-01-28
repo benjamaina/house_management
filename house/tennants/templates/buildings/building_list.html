@@ -11,7 +11,43 @@
 
 <div class="page-header">
     <h1 class="page-title">Your <span>Buildings</span></h1>
-    <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+            ℹ️ How It Works
+        </button>
+        <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>🏢 About Buildings</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What are Buildings?</strong></p>
+            <p>Buildings are your properties that contain multiple rental units (houses). Think of them as apartment blocks or flat complexes.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Key Information:</strong></p>
+            <ul>
+                <li><strong>Building Name:</strong> A unique identifier for your property</li>
+                <li><strong>Address:</strong> Physical location of the building</li>
+                <li><strong>Number of Houses:</strong> Maximum units this building can have</li>
+                <li><strong>Occupied/Vacant:</strong> Auto-calculated from tenant assignments</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Workflow:</strong></p>
+            <ol>
+                <li>Create a building with basic details</li>
+                <li>Add houses/units to the building</li>
+                <li>Assign tenants to houses</li>
+            </ol>
+            
+            <p style="margin-top: 1rem;"><strong>Note:</strong> Buildings with occupied houses cannot be deleted.</p>
+        </div>
+    </div>
 </div>
 
 <div class="card">

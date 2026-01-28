@@ -11,52 +11,65 @@
 
 <div class="page-header">
     <h1 class="page-title">Rent <span>Charges</span></h1>
-    <div style="display: flex; gap: 0.75rem;">
-        <a href="{% url 'payment_list' %}" class="btn btn-secondary">View Payments</a>
-        <a href="{% url 'rent_charge_bulk_create' %}"
-           class="btn btn-secondary"
-           style="border-color: var(--accent-yellow); color: var(--accent-yellow);">
-            ⚡ Bulk Create
-        </a>
-        <a href="{% url 'rent_charge_add' %}" class="btn btn-primary">
-            + Create Rent Charge
-        </a>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+            ℹ️ How It Works
+        </button>
+        <a href="{% url 'send_rent_reminders' %}" class="btn btn-secondary" style="border-color: var(--blue); color: var(--blue);">📱 Send Reminders</a>
+        <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary" style="border-color: var(--primary); color: var(--primary);">⚡ Bulk Create</a>
+        <a href="{% url 'rent_charge_add' %}" class="btn btn-primary">+ Create Charge</a>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>📋 About Rent Charges</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What are Rent Charges?</strong></p>
+            <p>Rent charges represent monthly rent obligations for each tenant. They track what tenants owe for a specific month/year.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Key Features:</strong></p>
+            <ul>
+                <li><strong>Amount Due:</strong> Auto-filled from the tenant's house rent amount</li>
+                <li><strong>Payments:</strong> Multiple payments can be made against a single charge</li>
+                <li><strong>Balance:</strong> Automatically calculated (Amount Due - Total Paid)</li>
+                <li><strong>Status:</strong> Shows Paid, Partial, or Unpaid based on balance</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Bulk Create:</strong></p>
+            <p>Use the "Bulk Create" button to generate rent charges for all active tenants at once for a specific month.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Send Reminders:</strong></p>
+            <p>Use "Send Reminders" to notify tenants via SMS about upcoming or overdue rent.</p>
+        </div>
     </div>
 </div>
 
 <!-- Filter by Tenant -->
 <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
     <form method="get" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <label for="tenant" style="color: var(--text-muted); font-size: 0.9rem;">
-            Filter by Tenant:
-        </label>
-
+        <label for="tenant" style="color: var(--text-muted); font-size: 0.9rem;">Filter by Tenant:</label>
         <select name="tenant" id="tenant" class="form-control" style="max-width: 250px;">
             <option value="">All Tenants</option>
             {% for tenant in tenants %}
-                <option value="{{ tenant.pk }}"
-                    {% if request.GET.tenant == tenant.pk|stringformat:"s" %}selected{% endif %}>
-                    {{ tenant.full_name }}
-                </option>
+            <option value="{{ tenant.pk }}" {% if request.GET.tenant == tenant.pk|stringformat:"i" %}selected{% endif %}>
+                {{ tenant.full_name }}
+            </option>
             {% endfor %}
         </select>
-
-        <button type="submit" class="btn btn-secondary btn-sm">
-            Apply Filter
-        </button>
-
+        <button type="submit" class="btn btn-secondary btn-sm">Apply Filter</button>
         {% if request.GET.tenant %}
-            <a href="{% url 'rent_charge_list' %}"
-               class="btn btn-secondary btn-sm"
-               style="background: transparent; border-color: var(--text-muted);">
-                Clear
-            </a>
+        <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary btn-sm" style="background: transparent; border-color: var(--text-muted);">Clear</a>
         {% endif %}
     </form>
 </div>
 
 <div class="card">
-{% if rentcharges %}
+    {% if rentcharges %}
     <div class="table-container">
         <table>
             <thead>
@@ -68,82 +81,71 @@
                     <th>Total Paid</th>
                     <th>Balance</th>
                     <th>Status</th>
+                    <th>Reminder</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-
             <tbody>
-            {% for charge in rentcharges %}
+                {% for charge in rentcharges %}
                 <tr>
-                    <td style="color: var(--text-primary); font-weight: 500;">
-                        <a href="{% url 'tenant_detail' charge.tenant.pk %}"
-                           style="color: var(--accent-yellow); text-decoration: none;">
+                    <td style="color: var(--text); font-weight: 500;">
+                        <a href="{% url 'tenant_detail' charge.tenant.pk %}" style="color: var(--primary); text-decoration: none;">
                             {{ charge.tenant.full_name }}
                         </a>
                     </td>
-
                     <td>
                         {% if charge.tenant.house %}
-                            <a href="{% url 'house_detail' charge.tenant.house.pk %}"
-                               style="color: var(--primary-blue); text-decoration: none;">
-                                {{ charge.tenant.house.house_number }}
-                            </a>
+                        <a href="{% url 'house_detail' charge.tenant.house.pk %}" style="color: var(--blue); text-decoration: none;">
+                            {{ charge.tenant.house.house_number }}
+                        </a>
                         {% else %}
-                            -
+                        -
                         {% endif %}
                     </td>
-
                     <td>{{ charge.get_month_display }} {{ charge.year }}</td>
-
                     <td>KES {{ charge.amount_due }}</td>
-
-                    <td class="text-success">
-                        KES {{ charge.total_paid }}
-                    </td>
-
-                    <td class="{% if charge.balance > 0 %}text-danger{% else %}text-success{% endif %} fw-600">
+                    <td style="color: var(--success);">KES {{ charge.total_paid }}</td>
+                    <td style="color: {% if charge.balance > 0 %}var(--danger){% else %}var(--success){% endif %}; font-weight: 600;">
                         KES {{ charge.balance }}
                     </td>
-
                     <td>
                         {% if charge.is_paid %}
-                            <span class="badge badge-success">Fully Paid</span>
+                        <span class="badge badge-success">Fully Paid</span>
                         {% elif charge.total_paid > 0 %}
-                            <span class="badge badge-warning">Partial</span>
+                        <span class="badge badge-warning">Partial</span>
                         {% else %}
-                            <span class="badge badge-danger">Unpaid</span>
+                        <span class="badge badge-danger">Unpaid</span>
                         {% endif %}
                     </td>
-
+                    <td>
+                        {% if charge.reminder_sent %}
+                        <span class="badge badge-info">Sent</span>
+                        {% else %}
+                        <span class="badge" style="background: var(--dark-elevated); color: var(--text-muted); border: 1px solid var(--border);">Not Sent</span>
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'rent_charge_detail' charge.pk %}"
-                               class="btn-icon" title="View">👁</a>
-                            <a href="{% url 'rent_charge_edit' charge.pk %}"
-                               class="btn-icon" title="Edit">✏️</a>
-                            <a href="{% url 'payment_add' %}"
-                               class="btn-icon"
-                               title="Record Payment"
-                               style="border-color: var(--accent-green); color: var(--accent-green);">
-                                💰
-                            </a>
+                            <a href="{% url 'rent_charge_detail' charge.pk %}" class="btn-icon" title="View">👁</a>
+                            <a href="{% url 'rent_charge_edit' charge.pk %}" class="btn-icon" title="Edit">✏️</a>
+                            <a href="{% url 'payment_add' %}" class="btn-icon" title="Record Payment" style="border-color: var(--success); color: var(--success);">💰</a>
                         </div>
                     </td>
                 </tr>
-            {% endfor %}
+                {% endfor %}
             </tbody>
         </table>
     </div>
-{% else %}
+    {% else %}
     <div class="empty-state">
+        <div class="empty-state-icon">📋</div>
         <h3>No rent charges created</h3>
         <p>Create rent charges to track what tenants owe</p>
-        <a href="{% url 'rent_charge_add' %}"
-           class="btn btn-primary"
-           style="margin-top: 1rem;">
-            + Create Rent Charge
-        </a>
+        <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
+            <a href="{% url 'rent_charge_add' %}" class="btn btn-primary">+ Create Charge</a>
+            <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary">⚡ Bulk Create</a>
+        </div>
     </div>
-{% endif %}
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Send Rent Reminders - House Management{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a>
+    <span>/</span>
+    <span>Send Reminders</span>
+</div>
+
+<div class="page-header">
+    <h1 class="page-title">Send Rent <span>Reminders</span></h1>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
+            ℹ️ How It Works
+        </button>
+        <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary">View Rent Charges</a>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
+    <div class="help-modal-content">
+        <div class="help-modal-header">
+            <h3>📱 About Rent Reminders</h3>
+            <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
+        </div>
+        <div class="help-modal-body">
+            <p><strong>What does this do?</strong></p>
+            <p>This page allows you to send SMS reminders to tenants whose rent is due soon. Reminders are sent via Twilio SMS.</p>
+            
+            <p style="margin-top: 1rem;"><strong>How it works:</strong></p>
+            <ul>
+                <li>The system checks each tenant's rent due date</li>
+                <li>Tenants within their reminder window (default: 3 days before due date) are listed</li>
+                <li>Only tenants with SMS notifications enabled will receive messages</li>
+                <li>Click "Send All Reminders" to send SMS to all listed tenants</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Requirements:</strong></p>
+            <ul>
+                <li>Tenant must have a valid phone number</li>
+                <li>Tenant must have SMS notifications enabled</li>
+                <li>A rent charge must exist for the current month</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Card -->
+<div class="stats-grid" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-value">{{ tenants_to_remind|length }}</div>
+        <div class="stat-label">Tenants to Remind</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ today|date:"M d" }}</div>
+        <div class="stat-label">Today's Date</div>
+    </div>
+</div>
+
+<!-- Send Reminders Form -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Tenants Due for Reminders</h2>
+        {% if tenants_to_remind %}
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">📤 Send All Reminders</button>
+        </form>
+        {% endif %}
+    </div>
+    
+    {% if tenants_to_remind %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tenant</th>
+                    <th>Phone</th>
+                    <th>House</th>
+                    <th>Rent Period</th>
+                    <th>Amount Due</th>
+                    <th>Balance</th>
+                    <th>Days Until Due</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in tenants_to_remind %}
+                <tr>
+                    <td style="color: var(--text); font-weight: 500;">
+                        <a href="{% url 'tenant_detail' item.tenant.pk %}" style="color: var(--primary); text-decoration: none;">
+                            {{ item.tenant.full_name }}
+                        </a>
+                    </td>
+                    <td>{{ item.tenant.phone }}</td>
+                    <td>
+                        {% if item.tenant.house %}
+                        {{ item.tenant.house.house_number }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>{{ item.rent_charge.get_month_display }} {{ item.rent_charge.year }}</td>
+                    <td>KES {{ item.rent_charge.amount_due }}</td>
+                    <td style="color: var(--danger); font-weight: 600;">KES {{ item.rent_charge.balance }}</td>
+                    <td>
+                        {% if item.days_until_due == 0 %}
+                        <span class="badge badge-danger">TODAY</span>
+                        {% elif item.days_until_due == 1 %}
+                        <span class="badge badge-warning">Tomorrow</span>
+                        {% else %}
+                        <span class="badge badge-info">{{ item.days_until_due }} days</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.tenant.sms_notifications %}
+                        <span class="badge badge-success">SMS Enabled</span>
+                        {% else %}
+                        <span class="badge badge-danger">SMS Disabled</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <h3>No reminders to send</h3>
+        <p>All tenants are either paid up or not within their reminder window</p>
+        <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary" style="margin-top: 1rem;">View Rent Charges</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Info Card -->
+<div class="card" style="margin-top: 1.5rem; border-color: var(--blue);">
+    <div style="display: flex; gap: 1rem; align-items: flex-start;">
+        <div style="font-size: 1.5rem;">💡</div>
+        <div>
+            <h4 style="color: var(--text); margin-bottom: 0.5rem;">Reminder Settings</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                Each tenant has a configurable "reminder days before" setting (default: 3 days). 
+                You can edit this in the tenant's profile. Tenants can also opt-out of SMS notifications.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

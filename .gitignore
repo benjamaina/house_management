@@ -17,7 +17,7 @@ nginx/
 venv/
 env/
 web-venv/
-
+.env
 # IDEs and editors
 .vscode/
 .idea/
@@ -43,3 +43,6 @@ coverage.xml
 *.yml
 
 *.session.sql
+.env
+house/.env
+.env

@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.db.models.signals import post_save,post_delete,pre_delete
+from django.db.models.signals import post_save,post_delete,pre_delete, pre_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from .models import Payment, House
@@ -12,6 +12,90 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.cache import cache
+ 
+
+from django.utils import timezone
+from datetime import timedelta
+from .models import RentCharge, Payment, Tenant
+from tennants.services.sms import TwilioNotificationService
+import logging
+
+logger = logging.getLogger(__name__)
+
+notification_service = TwilioNotificationService()
+
+
+@receiver(post_save, sender=RentCharge)
+def send_rent_reminder_on_create(sender, instance, created, **kwargs):
+    """
+    Send rent reminder when RentCharge is created
+    Checks if reminder should be sent based on tenant's preference
+    """
+    if created and instance.tenant.is_active:
+        tenant = instance.tenant
+        days_until_due = (tenant.rent_due_date - timezone.now().date()).days
+        
+        # Send reminder if within the reminder window
+        if 0 <= days_until_due <= tenant.reminder_days_before:
+            logger.info(f"Sending rent reminder to {tenant.full_name}")
+            success, result = notification_service.send_rent_due_reminder(instance)
+            
+            if success:
+                logger.info(f"Rent reminder sent successfully to {tenant.full_name}")
+            else:
+                logger.error(f"Failed to send rent reminder to {tenant.full_name}: {result}")
+
+
+@receiver(post_save, sender=Payment)
+def send_payment_confirmation(sender, instance, created, **kwargs):
+    """
+    Send payment confirmation SMS when payment is recorded
+    """
+    if created:
+        logger.info(f"Sending payment confirmation to {instance.tenant.full_name}")
+        success, result = notification_service.send_payment_confirmation(instance)
+        
+        if success:
+            logger.info(f"Payment confirmation sent to {instance.tenant.full_name}")
+        else:
+            logger.error(f"Failed to send payment confirmation: {result}")
+
+
+@receiver(post_save, sender=Tenant)
+def send_welcome_message(sender, instance, created, **kwargs):
+    """
+    Send welcome message when new tenant is created and assigned to a house
+    """
+    if created and instance.house and instance.is_active:
+        logger.info(f"Sending welcome message to {instance.full_name}")
+        success, result = notification_service.send_move_in_welcome(instance)
+        
+        if success:
+            logger.info(f"Welcome message sent to {instance.full_name}")
+        else:
+            logger.error(f"Failed to send welcome message: {result}")
+
+
+@receiver(pre_save, sender=Tenant)
+def notify_on_tenant_activation(sender, instance, **kwargs):
+    """
+    Send notification when tenant status changes
+    """
+    if instance.pk:
+        try:
+            old_instance = Tenant.objects.get(pk=instance.pk)
+            
+            # If tenant is being deactivated
+            if old_instance.is_active and not instance.is_active:
+                logger.info(f"Tenant {instance.full_name} deactivated")
+                # You can send a move-out confirmation here if needed
+                
+            # If tenant is being reactivated
+            elif not old_instance.is_active and instance.is_active:
+                logger.info(f"Tenant {instance.full_name} reactivated")
+                
+        except Tenant.DoesNotExist:
+            pass
 
 
 

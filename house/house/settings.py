@@ -91,7 +91,7 @@ UNFOLD = {
     # This is the key part - only show what you define
     "SIDEBAR": {
         "show_search": True,
-        "show_all_applications": False,  # IMPORTANT: This must be False
+        "show_all_applications": True,  # IMPORTANT: This must be False
         "navigation": [
             {
                 "title": "Dashboard",
@@ -228,24 +228,24 @@ WSGI_APPLICATION = "house.wsgi.application"
 
 
 # # # db for sqlite3
-# # set up for mysql for pythone everywhere platform
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
 # set up for mysql for pythone everywhere platform
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('NAME'),
-        'USER': os.getenv('USER'),
-        'PASSWORD': os.getenv('PASSWORD'),
-        'HOST': os.getenv('HOST'),
-        'PORT': os.getenv('PORT'),
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+# set up for mysql for pythone everywhere platform
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': os.getenv('NAME'),
+#         'USER': os.getenv('USER'),
+#         'PASSWORD': os.getenv('PASSWORD'),
+#         'HOST': os.getenv('HOST'),
+#         'PORT': os.getenv('PORT'),
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

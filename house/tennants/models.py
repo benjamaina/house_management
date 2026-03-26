@@ -48,12 +48,6 @@ class FlatBuilding(models.Model):
     def get_vacant_count(self):
         return self.number_of_houses - self.get_occupied_count()
 
-    def clean(self):
-        if self.number_of_houses < 0:
-            raise ValidationError("Number of houses must be non-negative")
-        if not self.building_name:
-            raise ValidationError("Building name is required")
-
     def __str__(self):
         return self.building_name
 

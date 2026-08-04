@@ -1,412 +1,411 @@
-<<<<<<< HEAD
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import serializers, generics
-from rest_framework.filters import OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from .models import Tenant, House, Payment, FlatBuilding, RentCharge
-from .serializers import (TenantSerializer, HouseSerializer, PaymentSerializer,
-                          FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer, ForgotPasswordSerializer)
-import logging
-import requests
-from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, login
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.core.cache import cache
-from django.core.exceptions import ValidationError
-from rest_framework.decorators import permission_classes
+# from django.shortcuts import render, get_object_or_404, redirect
+# from django.contrib.auth.decorators import login_required
+# from rest_framework.views import APIView
+# from rest_framework.decorators import api_view
+# from rest_framework import status
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework import serializers, generics
+# from rest_framework.filters import OrderingFilter
+# from django_filters.rest_framework import DjangoFilterBackend
+# from .models import Tenant, House, Payment, FlatBuilding, RentCharge
+# from .serializers import (TenantSerializer, HouseSerializer, PaymentSerializer,
+#                           FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer, ForgotPasswordSerializer)
+# import logging
+# import requests
+# from django.conf import settings
+# from django.http import JsonResponse
+# from django.views.decorators.csrf import csrf_exempt
+# from django.contrib.auth import authenticate, login
+# from rest_framework.permissions import IsAuthenticated, AllowAny
+# from django.core.cache import cache
+# from django.core.exceptions import ValidationError
+# from rest_framework.decorators import permission_classes
 
-from django.contrib.auth.models import User
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from rest_framework.exceptions import PermissionDenied, NotFound
-from rest_framework_simplejwt.tokens import RefreshToken
-import hashlib
-import json
-import logging
-from .forms import RegistrationForm
-from django.shortcuts import render, redirect
-from django.db import transaction
+# from django.contrib.auth.models import User
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from rest_framework import status, permissions
+# from rest_framework.exceptions import PermissionDenied, NotFound
+# from rest_framework_simplejwt.tokens import RefreshToken
+# import hashlib
+# import json
+# import logging
+# from .forms import RegistrationForm
+# from django.shortcuts import render, redirect
+# from django.db import transaction
 
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
-from django.contrib import messages
-from django.shortcuts import render
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-
+# from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+# from django.contrib.auth.mixins import LoginRequiredMixin
+# from django.contrib.auth.decorators import login_required
+# from django.urls import reverse_lazy
+# from django.contrib import messages
+# from django.shortcuts import render
+# from django.core.exceptions import ValidationError
+# from django.utils import timezone
 
 
 
-logger = logging.getLogger(__name__)
 
-CACHE_TTL = getattr(settings, 'CACHE_TTL', 60 * 15)
+# logger = logging.getLogger(__name__)
 
-def make_cache_key(request, prefix=""):
-    user_id = getattr(request.user, 'id', 'anonymous')
-    key = f"{prefix}:{user_id}:{request.get_full_path()}"
-    return hashlib.md5(key.encode('utf-8')).hexdigest()
+# CACHE_TTL = getattr(settings, 'CACHE_TTL', 60 * 15)
 
-def get_cached_response(request, prefix=""):
-    key = make_cache_key(request, prefix)
-    return cache.get(key)
+# def make_cache_key(request, prefix=""):
+#     user_id = getattr(request.user, 'id', 'anonymous')
+#     key = f"{prefix}:{user_id}:{request.get_full_path()}"
+#     return hashlib.md5(key.encode('utf-8')).hexdigest()
 
-def set_cached_response(request, data, prefix=""):
-    key = make_cache_key(request, prefix)
-    cache.set(key, data, CACHE_TTL)
+# def get_cached_response(request, prefix=""):
+#     key = make_cache_key(request, prefix)
+#     return cache.get(key)
 
-def clear_cache_pattern(request, prefix=""):
-    cache.delete_pattern(f"*{prefix}*")
+# def set_cached_response(request, data, prefix=""):
+#     key = make_cache_key(request, prefix)
+#     cache.set(key, data, CACHE_TTL)
+
+# def clear_cache_pattern(request, prefix=""):
+#     cache.delete_pattern(f"*{prefix}*")
 
 
-# ============================================================================
-# TENANT VIEWS
-# ============================================================================
+# # ============================================================================
+# # TENANT VIEWS
+# # ============================================================================
 
-class TenantListView(generics.ListCreateAPIView):
-    serializer_class = TenantSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['is_active', 'house', 'full_name']
-    ordering_fields = ['full_name', 'created_at']
+# class TenantListView(generics.ListCreateAPIView):
+#     serializer_class = TenantSerializer
+#     permission_classes = [IsAuthenticated]
+#     filter_backends = [DjangoFilterBackend, OrderingFilter]
+#     filterset_fields = ['is_active', 'house', 'full_name']
+#     ordering_fields = ['full_name', 'created_at']
 
-    def get_queryset(self):
-        """Filter tenants to only show current user's tenants"""
-        return Tenant.objects.filter(user=self.request.user).order_by('id')
+#     def get_queryset(self):
+#         """Filter tenants to only show current user's tenants"""
+#         return Tenant.objects.filter(user=self.request.user).order_by('id')
     
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="tenants")
-        if cached:
-            logger.debug(f"Serving cached tenants for user={request.user}") 
-            return Response(cached)
+#     def get(self, request, *args, **kwargs):
+#         cached = get_cached_response(request, prefix="tenants")
+#         if cached:
+#             logger.debug(f"Serving cached tenants for user={request.user}") 
+#             return Response(cached)
         
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="tenants")
-        logger.debug(f"Caching tenants for user={request.user}")
-        return response
+#         response = super().get(request, *args, **kwargs)
+#         set_cached_response(request, response.data, prefix="tenants")
+#         logger.debug(f"Caching tenants for user={request.user}")
+#         return response
 
-    def perform_create(self, serializer):
-    #    return proper response on capacity validation error during tenant creation
-        try:
-            tenant = serializer.save(user=self.request.user)
-            clear_cache_pattern(self.request, "tenants")
-        except ValidationError as e:
-            raise serializers.ValidationError({"detail": str(e)})
+#     def perform_create(self, serializer):
+#     #    return proper response on capacity validation error during tenant creation
+#         try:
+#             tenant = serializer.save(user=self.request.user)
+#             clear_cache_pattern(self.request, "tenants")
+#         except ValidationError as e:
+#             raise serializers.ValidationError({"detail": str(e)})
 
-class TenantDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = TenantSerializer
-    permission_classes = [IsAuthenticated]
+# class TenantDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     serializer_class = TenantSerializer
+#     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """Filter to user's tenants, optionally by house_id"""
-        queryset = Tenant.objects.filter(user=self.request.user)
-        house_id = self.request.query_params.get('house_id')
-        if house_id:
-            queryset = queryset.filter(house_id=house_id)
-            logger.debug(f"Filtered tenants by house_id={house_id} for user={self.request.user}")
-        return queryset.order_by('id')
+#     def get_queryset(self):
+#         """Filter to user's tenants, optionally by house_id"""
+#         queryset = Tenant.objects.filter(user=self.request.user)
+#         house_id = self.request.query_params.get('house_id')
+#         if house_id:
+#             queryset = queryset.filter(house_id=house_id)
+#             logger.debug(f"Filtered tenants by house_id={house_id} for user={self.request.user}")
+#         return queryset.order_by('id')
 
 
-# ============================================================================
-# HOUSE VIEWS
-# ============================================================================
+# # ============================================================================
+# # HOUSE VIEWS
+# # ============================================================================
 
-class HouseListView(generics.ListCreateAPIView):
-    serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]
-    ordering_fields = ['house_number', 'house_size', 'house_rent_amount']
+# class HouseListView(generics.ListCreateAPIView):
+#     serializer_class = HouseSerializer
+#     permission_classes = [IsAuthenticated]
+#     ordering_fields = ['house_number', 'house_size', 'house_rent_amount']
 
-    def get_queryset(self):
-        """Filter houses to only show current user's houses"""
-        print("Fetching houses for user:", self.request.user)
-        queryset = House.objects.filter(user=self.request.user)
-        print("Initial queryset count:", queryset.count())
+#     def get_queryset(self):
+#         """Filter houses to only show current user's houses"""
+#         print("Fetching houses for user:", self.request.user)
+#         queryset = House.objects.filter(user=self.request.user)
+#         print("Initial queryset count:", queryset.count())
         
-        # Optional filter by flat_building
-        flat_building_id = self.request.query_params.get('flat_building_id')
-        if flat_building_id:
-            queryset = queryset.filter(flat_building_id=flat_building_id)
-            logger.info(f"Filtering houses by flat_building_id={flat_building_id} for user={self.request.user}")
+#         # Optional filter by flat_building
+#         flat_building_id = self.request.query_params.get('flat_building_id')
+#         if flat_building_id:
+#             queryset = queryset.filter(flat_building_id=flat_building_id)
+#             logger.info(f"Filtering houses by flat_building_id={flat_building_id} for user={self.request.user}")
         
-        return queryset.order_by('id')
+#         return queryset.order_by('id')
 
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="houses")
-        if cached:
-            logger.debug(f"Serving cached houses for user={request.user}")
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="houses")
-        logger.debug(f"Caching houses for user={request.user}")
-        return response
-    
-
-
-    def perform_create(self, serializer):
-        """return proper response on capacity validation error during house creation"""
-        try:
-            house = serializer.save(user=self.request.user)
-            clear_cache_pattern(self.request, "houses")
-        except ValidationError as e:
-            raise serializers.ValidationError({"detail": str(e)})
-
-class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = HouseSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'pk'
-    
-    def get_queryset(self):
-        """Filter to user's houses only"""
-        return House.objects.filter(user=self.request.user).order_by('id')
-
-
-# ============================================================================
-# FLAT BUILDING VIEWS
-# ============================================================================
-
-class FlatBuildingListView(generics.ListCreateAPIView):
-    serializer_class = FlatBuildingSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Filter flat buildings to current user, optionally by name"""
-        queryset = FlatBuilding.objects.filter(user=self.request.user)
-        
-        # Optional search by name
-        name = self.request.query_params.get('name')
-        if name:
-            # FIX: Changed from 'biulding_name' to 'building_name'
-            queryset = queryset.filter(building_name__icontains=name)
-        
-        return queryset.order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="flats")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="flats")
-        return response
-
-    def perform_create(self, serializer):
-        flat_building = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "flats")
-
-
-class FlatBuildingDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = FlatBuildingSerializer
-    permission_classes = [IsAuthenticated]
-    lookup_field = 'pk' 
-    
-    def get_queryset(self):
-        """Filter to user's buildings only - no name search needed here"""
-        return FlatBuilding.objects.filter(user=self.request.user).order_by('id')
-    
-    def destroy(self, request, *args, **kwargs):
-        """Prevent deletion if building has houses"""
-        flat_building = self.get_object()
-        if flat_building.houses.exists():
-            return Response(
-                {"message": "Cannot delete FlatBuilding with existing houses."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return super().destroy(request, *args, **kwargs)
-
-
-# ============================================================================
-# RENT PAYMENT VIEWS
-# ============================================================================
-
-class PaymentListView(generics.ListCreateAPIView):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Only show paid payments for current user"""
-        return Payment.objects.filter(
-            user=self.request.user
-        ).order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="rent_payments")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="rent_payments")
-        return response
-
-    def perform_create(self, serializer):
-        payment = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "rent_payments")
-
-
-class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Filter to user's payments, optionally by tenant"""
-        queryset = Payment.objects.filter(user=self.request.user)
-        
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-        
-        return queryset.order_by('id')
-
-
-class RentChargeListView(generics.ListCreateAPIView):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Only show rent charges for current user"""
-        return RentCharge.objects.filter(
-            user=self.request.user
-        ).order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="rent_charges")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="rent_charges")
-        return response
-
-    def perform_create(self, serializer):
-        rent_charge = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "rent_charges")
-
-class RentChargeDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Filter to user's rent charges, optionally by tenant"""
-        queryset = RentCharge.objects.filter(user=self.request.user)
-        
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-        
-        return queryset.order_by('id')
-
-# ============================================================================
-# AUTHENTICATION VIEWS
-# ============================================================================
-
-
-
-class RegisterAdminView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = RegisterAdminSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            email = serializer.validated_data.get('email', '')
-
-            try:
-                User.objects.create_superuser(username=username, password=password, email=email)
-                return Response({"message": "Admin registered successfully."}, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    
-class AdminLogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            RefreshToken(request.data['refresh_token']).blacklist()
-            return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-# ============================================================================
-# LOGIN USER VIEW
-# ============================================================================
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_exempt
-def user_login(request):
-    """Login endpoint for regular users"""
-    logger.debug(f"User login attempt with data: {request.data}")
-    logger.debug(request.data)
-    print("DEBUG LOGIN BODY →", request.data)
-
-    username = request.data.get('username')
-    password = request.data.get('password')
-
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        refresh = RefreshToken.for_user(user)
-        access_token = refresh.access_token
-
-        return Response({
-            "message": "Login successful",
-            "access_token": str(access_token),
-            "refresh_token": str(refresh),
-        }, status=status.HTTP_200_OK)
-    else:
-        logger.debug(f"Authentication failed for user: {username}")
-        return Response({
-            "message": "Invalid credentials",
-        }, status=status.HTTP_401_UNAUTHORIZED)
-    
-# ===========================================================================
-# REGISTER USER VIEW
-# ===========================================================================
-# for normal user registration, not admin
-class RegisterUserView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = RegisterAdminSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            email = serializer.validated_data.get('email', '')
-
-            try:
-                User.objects.create_user(username=username, password=password, email=email)
-                return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     def get(self, request, *args, **kwargs):
+#         cached = get_cached_response(request, prefix="houses")
+#         if cached:
+#             logger.debug(f"Serving cached houses for user={request.user}")
+#             return Response(cached)
+#         response = super().get(request, *args, **kwargs)
+#         set_cached_response(request, response.data, prefix="houses")
+#         logger.debug(f"Caching houses for user={request.user}")
+#         return response
     
 
-def register(request):
-    if request.method == "POST":
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            # set staff/superuser flags if needed
-            user.is_staff = False
-            user.is_superuser = False
-            user.save()
+
+#     def perform_create(self, serializer):
+#         """return proper response on capacity validation error during house creation"""
+#         try:
+#             house = serializer.save(user=self.request.user)
+#             clear_cache_pattern(self.request, "houses")
+#         except ValidationError as e:
+#             raise serializers.ValidationError({"detail": str(e)})
+
+# class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     serializer_class = HouseSerializer
+#     permission_classes = [IsAuthenticated]
+#     lookup_field = 'pk'
+    
+#     def get_queryset(self):
+#         """Filter to user's houses only"""
+#         return House.objects.filter(user=self.request.user).order_by('id')
+
+
+# # ============================================================================
+# # FLAT BUILDING VIEWS
+# # ============================================================================
+
+# class FlatBuildingListView(generics.ListCreateAPIView):
+#     serializer_class = FlatBuildingSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         """Filter flat buildings to current user, optionally by name"""
+#         queryset = FlatBuilding.objects.filter(user=self.request.user)
+        
+#         # Optional search by name
+#         name = self.request.query_params.get('name')
+#         if name:
+#             # FIX: Changed from 'biulding_name' to 'building_name'
+#             queryset = queryset.filter(building_name__icontains=name)
+        
+#         return queryset.order_by('id')
+
+#     def get(self, request, *args, **kwargs):
+#         cached = get_cached_response(request, prefix="flats")
+#         if cached:
+#             return Response(cached)
+#         response = super().get(request, *args, **kwargs)
+#         set_cached_response(request, response.data, prefix="flats")
+#         return response
+
+#     def perform_create(self, serializer):
+#         flat_building = serializer.save(user=self.request.user)
+#         clear_cache_pattern(self.request, "flats")
+
+
+# class FlatBuildingDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     serializer_class = FlatBuildingSerializer
+#     permission_classes = [IsAuthenticated]
+#     lookup_field = 'pk' 
+    
+#     def get_queryset(self):
+#         """Filter to user's buildings only - no name search needed here"""
+#         return FlatBuilding.objects.filter(user=self.request.user).order_by('id')
+    
+#     def destroy(self, request, *args, **kwargs):
+#         """Prevent deletion if building has houses"""
+#         flat_building = self.get_object()
+#         if flat_building.houses.exists():
+#             return Response(
+#                 {"message": "Cannot delete FlatBuilding with existing houses."}, 
+#                 status=status.HTTP_400_BAD_REQUEST
+#             )
+#         return super().destroy(request, *args, **kwargs)
+
+
+# # ============================================================================
+# # RENT PAYMENT VIEWS
+# # ============================================================================
+
+# class PaymentListView(generics.ListCreateAPIView):
+#     serializer_class = PaymentSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         """Only show paid payments for current user"""
+#         return Payment.objects.filter(
+#             user=self.request.user
+#         ).order_by('id')
+
+#     def get(self, request, *args, **kwargs):
+#         cached = get_cached_response(request, prefix="rent_payments")
+#         if cached:
+#             return Response(cached)
+#         response = super().get(request, *args, **kwargs)
+#         set_cached_response(request, response.data, prefix="rent_payments")
+#         return response
+
+#     def perform_create(self, serializer):
+#         payment = serializer.save(user=self.request.user)
+#         clear_cache_pattern(self.request, "rent_payments")
+
+
+# class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     serializer_class = PaymentSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         """Filter to user's payments, optionally by tenant"""
+#         queryset = Payment.objects.filter(user=self.request.user)
+        
+#         tenant_id = self.request.query_params.get('tenant_id')
+#         if tenant_id:
+#             queryset = queryset.filter(tenant_id=tenant_id)
+        
+#         return queryset.order_by('id')
+
+
+# class RentChargeListView(generics.ListCreateAPIView):
+#     serializer_class = PaymentSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         """Only show rent charges for current user"""
+#         return RentCharge.objects.filter(
+#             user=self.request.user
+#         ).order_by('id')
+
+#     def get(self, request, *args, **kwargs):
+#         cached = get_cached_response(request, prefix="rent_charges")
+#         if cached:
+#             return Response(cached)
+#         response = super().get(request, *args, **kwargs)
+#         set_cached_response(request, response.data, prefix="rent_charges")
+#         return response
+
+#     def perform_create(self, serializer):
+#         rent_charge = serializer.save(user=self.request.user)
+#         clear_cache_pattern(self.request, "rent_charges")
+
+# class RentChargeDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     serializer_class = PaymentSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         """Filter to user's rent charges, optionally by tenant"""
+#         queryset = RentCharge.objects.filter(user=self.request.user)
+        
+#         tenant_id = self.request.query_params.get('tenant_id')
+#         if tenant_id:
+#             queryset = queryset.filter(tenant_id=tenant_id)
+        
+#         return queryset.order_by('id')
+
+# # ============================================================================
+# # AUTHENTICATION VIEWS
+# # ============================================================================
+
+
+
+# class RegisterAdminView(APIView):
+#     permission_classes = [permissions.AllowAny]
+
+#     def post(self, request):
+#         serializer = RegisterAdminSerializer(data=request.data)
+#         if serializer.is_valid():
+#             username = serializer.validated_data['username']
+#             password = serializer.validated_data['password']
+#             email = serializer.validated_data.get('email', '')
+
+#             try:
+#                 User.objects.create_superuser(username=username, password=password, email=email)
+#                 return Response({"message": "Admin registered successfully."}, status=status.HTTP_201_CREATED)
+#             except Exception as e:
+#                 return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    
+# class AdminLogoutView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         try:
+#             RefreshToken(request.data['refresh_token']).blacklist()
+#             return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
+#         except Exception as e:
+#             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+# # ============================================================================
+# # LOGIN USER VIEW
+# # ============================================================================
+# @api_view(['POST'])
+# @permission_classes([AllowAny])
+# @csrf_exempt
+# def user_login(request):
+#     """Login endpoint for regular users"""
+#     logger.debug(f"User login attempt with data: {request.data}")
+#     logger.debug(request.data)
+#     print("DEBUG LOGIN BODY →", request.data)
+
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+
+#     user = authenticate(request, username=username, password=password)
+#     if user is not None:
+#         refresh = RefreshToken.for_user(user)
+#         access_token = refresh.access_token
+
+#         return Response({
+#             "message": "Login successful",
+#             "access_token": str(access_token),
+#             "refresh_token": str(refresh),
+#         }, status=status.HTTP_200_OK)
+#     else:
+#         logger.debug(f"Authentication failed for user: {username}")
+#         return Response({
+#             "message": "Invalid credentials",
+#         }, status=status.HTTP_401_UNAUTHORIZED)
+    
+# # ===========================================================================
+# # REGISTER USER VIEW
+# # ===========================================================================
+# # for normal user registration, not admin
+# class RegisterUserView(APIView):
+#     permission_classes = [permissions.AllowAny]
+
+#     def post(self, request):
+#         serializer = RegisterAdminSerializer(data=request.data)
+#         if serializer.is_valid():
+#             username = serializer.validated_data['username']
+#             password = serializer.validated_data['password']
+#             email = serializer.validated_data.get('email', '')
+
+#             try:
+#                 User.objects.create_user(username=username, password=password, email=email)
+#                 return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+#             except Exception as e:
+#                 return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+# def register(request):
+#     if request.method == "POST":
+#         form = RegistrationForm(request.POST)
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             # set staff/superuser flags if needed
+#             user.is_staff = False
+#             user.is_superuser = False
+#             user.save()
             
-            # ✅ Automatically log the user in
-            login(request, user)
+#             # ✅ Automatically log the user in
+#             login(request, user)
             
-            # ✅ Redirect into the app (e.g., dashboard)
-            return redirect("dashboard")  # replace "dashboard" with your main app URL name
+#             # ✅ Redirect into the app (e.g., dashboard)
+#             return redirect("dashboard")  # replace "dashboard" with your main app URL name
             
-    else:
-        form = RegistrationForm()
+#     else:
+#         form = RegistrationForm()
     
-    return render(request, "register.html", {"form": form})
+#     return render(request, "register.html", {"form": form})
 
 
 
@@ -414,555 +413,553 @@ def register(request):
 
 
 
-# this views are for returning html pages
-# ============================================================================
-# WEB TEMPLATE VIEWS (for normal users in browser)
-# ============================================================================
+# # this views are for returning html pages
+# # ============================================================================
+# # WEB TEMPLATE VIEWS (for normal users in browser)
+# # ============================================================================
 
-# landing page
-def landing_page(request):
-    """Render the landing page"""
-    return render(request, 'landing.html')
+# # landing page
+# def landing_page(request):
+#     """Render the landing page"""
+#     return render(request, 'landing.html')
 
-# view to change passowrd for normal users
-class ForgotPasswordView(APIView):
-    permission_classes = [AllowAny]
+# # view to change passowrd for normal users
+# class ForgotPasswordView(APIView):
+#     permission_classes = [AllowAny]
     
-    def post(self, request):
-        serializer = ForgotPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+#     def post(self, request):
+#         serializer = ForgotPasswordSerializer(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
         
         
 
-# Dashboard
-@login_required
-def dashboard(request):
-    """Main dashboard showing summary stats"""
-    buildings = FlatBuilding.objects.filter(user=request.user)
-    total_houses = House.objects.filter(user=request.user).count()
-    occupied_houses = House.objects.filter(user=request.user, occupation=True).count()
-    active_tenants = Tenant.objects.filter(user=request.user, is_active=True).count()
+# # Dashboard
+# @login_required
+# def dashboard(request):
+#     """Main dashboard showing summary stats"""
+#     buildings = FlatBuilding.objects.filter(user=request.user)
+#     total_houses = House.objects.filter(user=request.user).count()
+#     occupied_houses = House.objects.filter(user=request.user, occupation=True).count()
+#     active_tenants = Tenant.objects.filter(user=request.user, is_active=True).count()
     
-    # Recent payments (last 5)
-    recent_payments = Payment.objects.filter(
-        user=request.user
-    ).order_by('-paid_at')[:5]
+#     # Recent payments (last 5)
+#     recent_payments = Payment.objects.filter(
+#         user=request.user
+#     ).order_by('-paid_at')[:5]
     
-    # Calculate percentage of occupied houses (avoid division by zero)
-    if total_houses:
-        percent_occupied = round((occupied_houses / total_houses) * 100, 2)
-    else:
-        percent_occupied = 0.0
+#     # Calculate percentage of occupied houses (avoid division by zero)
+#     if total_houses:
+#         percent_occupied = round((occupied_houses / total_houses) * 100, 2)
+#     else:
+#         percent_occupied = 0.0
     
-    context = {
-        'buildings': buildings,
-        'total_houses': total_houses,
-        'occupied_houses': occupied_houses,
-        'vacant_houses': total_houses - occupied_houses,
-        'active_tenants': active_tenants,
-        'recent_payments': recent_payments,
-        'percent_occupied': percent_occupied,
-    }
-    return render(request, 'dashboard.html', context)
+#     context = {
+#         'buildings': buildings,
+#         'total_houses': total_houses,
+#         'occupied_houses': occupied_houses,
+#         'vacant_houses': total_houses - occupied_houses,
+#         'active_tenants': active_tenants,
+#         'recent_payments': recent_payments,
+#         'percent_occupied': percent_occupied,
+#     }
+#     return render(request, 'dashboard.html', context)
 
 
-# ============================================================================
-# BUILDING VIEWS
-# ============================================================================
+# # ============================================================================
+# # BUILDING VIEWS
+# # ============================================================================
 
-class BuildingListView(LoginRequiredMixin, ListView):
-    model = FlatBuilding
-    template_name = 'buildings/building_list.html'
-    context_object_name = 'buildings'
+# class BuildingListView(LoginRequiredMixin, ListView):
+#     model = FlatBuilding
+#     template_name = 'buildings/building_list.html'
+#     context_object_name = 'buildings'
     
-    def get_queryset(self):
-        return FlatBuilding.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return FlatBuilding.objects.filter(user=self.request.user)
 
 
-class BuildingCreateView(LoginRequiredMixin, CreateView):
-    model = FlatBuilding
-    fields = ['building_name', 'address', 'number_of_houses']
-    template_name = 'buildings/building_form.html'
-    success_url = reverse_lazy('building_list')
+# class BuildingCreateView(LoginRequiredMixin, CreateView):
+#     model = FlatBuilding
+#     fields = ['building_name', 'address', 'number_of_houses']
+#     template_name = 'buildings/building_form.html'
+#     success_url = reverse_lazy('building_list')
     
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        messages.success(self.request, 'Building created successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         form.instance.user = self.request.user
+#         messages.success(self.request, 'Building created successfully!')
+#         return super().form_valid(form)
 
 
-class BuildingUpdateView(LoginRequiredMixin, UpdateView):
-    model = FlatBuilding
-    fields = ['building_name', 'address', 'number_of_houses']
-    template_name = 'buildings/building_form.html'
-    success_url = reverse_lazy('building_list')
+# class BuildingUpdateView(LoginRequiredMixin, UpdateView):
+#     model = FlatBuilding
+#     fields = ['building_name', 'address', 'number_of_houses']
+#     template_name = 'buildings/building_form.html'
+#     success_url = reverse_lazy('building_list')
     
-    def get_queryset(self):
-        return FlatBuilding.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return FlatBuilding.objects.filter(user=self.request.user)
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Building updated successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         messages.success(self.request, 'Building updated successfully!')
+#         return super().form_valid(form)
 
 
-class BuildingDeleteView(LoginRequiredMixin, DeleteView):
-    model = FlatBuilding
-    template_name = 'buildings/building_confirm_delete.html'
-    success_url = reverse_lazy('building_list')
+# class BuildingDeleteView(LoginRequiredMixin, DeleteView):
+#     model = FlatBuilding
+#     template_name = 'buildings/building_confirm_delete.html'
+#     success_url = reverse_lazy('building_list')
     
-    def get_queryset(self):
-        return FlatBuilding.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return FlatBuilding.objects.filter(user=self.request.user)
     
-    def delete(self, request, *args, **kwargs):
-        # first check if building has houses and those houses have tenants
-        building = self.get_object()
-        if building.houses.filter(occupation=True).exists():
-            messages.error(self.request, 'Cannot delete building with occupied houses!')
-            return redirect('building_list')
-        messages.success(self.request, 'Building deleted successfully!')
-        return super().delete(request, *args, **kwargs)
+#     def delete(self, request, *args, **kwargs):
+#         # first check if building has houses and those houses have tenants
+#         building = self.get_object()
+#         if building.houses.filter(occupation=True).exists():
+#             messages.error(self.request, 'Cannot delete building with occupied houses!')
+#             return redirect('building_list')
+#         messages.success(self.request, 'Building deleted successfully!')
+#         return super().delete(request, *args, **kwargs)
         
 
-class BuildingDetailView(LoginRequiredMixin, DetailView):
-    model = FlatBuilding
-    template_name = 'buildings/building_detail.html'
-    context_object_name = 'building'
+# class BuildingDetailView(LoginRequiredMixin, DetailView):
+#     model = FlatBuilding
+#     template_name = 'buildings/building_detail.html'
+#     context_object_name = 'building'
     
-    def get_queryset(self):
-        return FlatBuilding.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return FlatBuilding.objects.filter(user=self.request.user)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Get all houses in this building
-        context['houses'] = self.object.houses.all()
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         # Get all houses in this building
+#         context['houses'] = self.object.houses.all()
+#         return context
 
 
-# ============================================================================
-# HOUSE VIEWS
-# ============================================================================
+# # ============================================================================
+# # HOUSE VIEWS
+# # ============================================================================
 
-class HouseListView(LoginRequiredMixin, ListView):
-    model = House
-    template_name = 'houses/house_list.html'
-    context_object_name = 'houses'
+# class HouseListView(LoginRequiredMixin, ListView):
+#     model = House
+#     template_name = 'houses/house_list.html'
+#     context_object_name = 'houses'
     
-    def get_queryset(self):
-        queryset = House.objects.filter(user=self.request.user)
-        # Optional filter by building
-        building_id = self.request.GET.get('building')
-        if building_id:
-            queryset = queryset.filter(flat_building_id=building_id)
-        return queryset
+#     def get_queryset(self):
+#         queryset = House.objects.filter(user=self.request.user)
+#         # Optional filter by building
+#         building_id = self.request.GET.get('building')
+#         if building_id:
+#             queryset = queryset.filter(flat_building_id=building_id)
+#         return queryset
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['buildings'] = FlatBuilding.objects.filter(user=self.request.user)
-        return context
-
-
-class HouseCreateView(LoginRequiredMixin, CreateView):
-    model = House
-    fields = ['flat_building', 'house_number', 'house_size', 'house_rent_amount', 'deposit_amount']
-    template_name = 'houses/house_form.html'
-    success_url = reverse_lazy('house_list')
-    
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Only show user's buildings in dropdown
-        form.fields['flat_building'].queryset = FlatBuilding.objects.filter(user=self.request.user)
-        return form
-    
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        try:
-            messages.success(self.request, 'House created successfully!')
-            return super().form_valid(form)
-        except ValidationError as e:
-            messages.error(self.request, str(e))
-            return self.form_invalid(form)
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['buildings'] = FlatBuilding.objects.filter(user=self.request.user)
+#         return context
 
 
-class HouseUpdateView(LoginRequiredMixin, UpdateView):
-    model = House
-    fields = ['flat_building', 'house_number', 'house_size', 'house_rent_amount', 'deposit_amount']
-    template_name = 'houses/house_form.html'
-    success_url = reverse_lazy('house_list')
+# class HouseCreateView(LoginRequiredMixin, CreateView):
+#     model = House
+#     fields = ['flat_building', 'house_number', 'house_size', 'house_rent_amount', 'deposit_amount']
+#     template_name = 'houses/house_form.html'
+#     success_url = reverse_lazy('house_list')
     
-    def get_queryset(self):
-        return House.objects.filter(user=self.request.user)
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Only show user's buildings in dropdown
+#         form.fields['flat_building'].queryset = FlatBuilding.objects.filter(user=self.request.user)
+#         return form
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['flat_building'].queryset = FlatBuilding.objects.filter(user=self.request.user)
-        return form
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'House updated successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         form.instance.user = self.request.user
+#         try:
+#             messages.success(self.request, 'House created successfully!')
+#             return super().form_valid(form)
+#         except ValidationError as e:
+#             messages.error(self.request, str(e))
+#             return self.form_invalid(form)
 
 
-class HouseDeleteView(LoginRequiredMixin, DeleteView):
-    model = House
-    template_name = 'houses/house_confirm_delete.html'
-    success_url = reverse_lazy('house_list')
+# class HouseUpdateView(LoginRequiredMixin, UpdateView):
+#     model = House
+#     fields = ['flat_building', 'house_number', 'house_size', 'house_rent_amount', 'deposit_amount']
+#     template_name = 'houses/house_form.html'
+#     success_url = reverse_lazy('house_list')
     
-    def get_queryset(self):
-        return House.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return House.objects.filter(user=self.request.user)
+    
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         form.fields['flat_building'].queryset = FlatBuilding.objects.filter(user=self.request.user)
+#         return form
+    
+#     def form_valid(self, form):
+#         messages.success(self.request, 'House updated successfully!')
+#         return super().form_valid(form)
 
 
-class HouseDetailView(LoginRequiredMixin, DetailView):
-    model = House
-    template_name = 'houses/house_detail.html'
-    context_object_name = 'house'
+# class HouseDeleteView(LoginRequiredMixin, DeleteView):
+#     model = House
+#     template_name = 'houses/house_confirm_delete.html'
+#     success_url = reverse_lazy('house_list')
     
-    def get_queryset(self):
-        return House.objects.filter(user=self.request.user)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Get current tenant if any
-        context['tenant'] = self.object.tenants.filter(is_active=True).first()
-        return context
+#     def get_queryset(self):
+#         return House.objects.filter(user=self.request.user)
 
 
-# ============================================================================
-# TENANT VIEWS
-# ============================================================================
-
-class TenantListView(LoginRequiredMixin, ListView):
-    model = Tenant
-    template_name = 'tenants/tenant_list.html'
-    context_object_name = 'tenants'
+# class HouseDetailView(LoginRequiredMixin, DetailView):
+#     model = House
+#     template_name = 'houses/house_detail.html'
+#     context_object_name = 'house'
     
-    def get_queryset(self):
-        queryset = Tenant.objects.filter(user=self.request.user)
-        # Optional filter by active status
-        status = self.request.GET.get('status')
-        if status == 'active':
-            queryset = queryset.filter(is_active=True)
-        elif status == 'inactive':
-            queryset = queryset.filter(is_active=False)
-        return queryset
+#     def get_queryset(self):
+#         return House.objects.filter(user=self.request.user)
+    
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         # Get current tenant if any
+#         context['tenant'] = self.object.tenants.filter(is_active=True).first()
+#         return context
 
 
-class TenantCreateView(LoginRequiredMixin, CreateView):
-    model = Tenant
-    fields = ['full_name', 'email', 'phone', 'id_number', 'house', 'rent_due_date']
-    template_name = 'tenants/tenant_form.html'
-    success_url = reverse_lazy('tenant_list')
+# # ============================================================================
+# # TENANT VIEWS
+# # ============================================================================
+
+# class TenantListView(LoginRequiredMixin, ListView):
+#     model = Tenant
+#     template_name = 'tenants/tenant_list.html'
+#     context_object_name = 'tenants'
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Only show vacant houses
-        form.fields['house'].queryset = House.objects.filter(
-            user=self.request.user, 
-            occupation=False
-        )
-        return form
-    
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        try:
-            messages.success(self.request, 'Tenant added successfully!')
-            return super().form_valid(form)
-        except ValidationError as e:
-            messages.error(self.request, str(e))
-            return self.form_invalid(form)
+#     def get_queryset(self):
+#         queryset = Tenant.objects.filter(user=self.request.user)
+#         # Optional filter by active status
+#         status = self.request.GET.get('status')
+#         if status == 'active':
+#             queryset = queryset.filter(is_active=True)
+#         elif status == 'inactive':
+#             queryset = queryset.filter(is_active=False)
+#         return queryset
 
 
-class TenantUpdateView(LoginRequiredMixin, UpdateView):
-    model = Tenant
-    fields = ['full_name', 'email', 'phone', 'id_number', 'house', 'rent_due_date', 'is_active']
-    template_name = 'tenants/tenant_form.html'
-    success_url = reverse_lazy('tenant_list')
+# class TenantCreateView(LoginRequiredMixin, CreateView):
+#     model = Tenant
+#     fields = ['full_name', 'email', 'phone', 'id_number', 'house', 'rent_due_date']
+#     template_name = 'tenants/tenant_form.html'
+#     success_url = reverse_lazy('tenant_list')
     
-    def get_queryset(self):
-        return Tenant.objects.filter(user=self.request.user)
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Only show vacant houses
+#         form.fields['house'].queryset = House.objects.filter(
+#             user=self.request.user, 
+#             occupation=False
+#         )
+#         return form
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Show all user's houses
-        form.fields['house'].queryset = House.objects.filter(user=self.request.user)
-        return form
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Tenant updated successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         form.instance.user = self.request.user
+#         try:
+#             messages.success(self.request, 'Tenant added successfully!')
+#             return super().form_valid(form)
+#         except ValidationError as e:
+#             messages.error(self.request, str(e))
+#             return self.form_invalid(form)
 
 
-class TenantDeleteView(LoginRequiredMixin, DeleteView):
-    model = Tenant
-    template_name = 'tenants/tenant_confirm_delete.html'
-    success_url = reverse_lazy('tenant_list')
+# class TenantUpdateView(LoginRequiredMixin, UpdateView):
+#     model = Tenant
+#     fields = ['full_name', 'email', 'phone', 'id_number', 'house', 'rent_due_date', 'is_active']
+#     template_name = 'tenants/tenant_form.html'
+#     success_url = reverse_lazy('tenant_list')
     
-    def get_queryset(self):
-        return Tenant.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return Tenant.objects.filter(user=self.request.user)
+    
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Show all user's houses
+#         form.fields['house'].queryset = House.objects.filter(user=self.request.user)
+#         return form
+    
+#     def form_valid(self, form):
+#         messages.success(self.request, 'Tenant updated successfully!')
+#         return super().form_valid(form)
 
 
-class TenantDetailView(LoginRequiredMixin, DetailView):
-    model = Tenant
-    template_name = 'tenants/tenant_detail.html'
-    context_object_name = 'tenant'
+# class TenantDeleteView(LoginRequiredMixin, DeleteView):
+#     model = Tenant
+#     template_name = 'tenants/tenant_confirm_delete.html'
+#     success_url = reverse_lazy('tenant_list')
     
-    def get_queryset(self):
-        return Tenant.objects.filter(user=self.request.user)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Get payment history
-        context['payments'] = self.object.rent_payments.all().order_by('-payment_date')
-        # context['overdue_payments'] = self.object.rent_payments.filter(is_paid=False)
-        return context
+#     def get_queryset(self):
+#         return Tenant.objects.filter(user=self.request.user)
 
 
-# ============================================================================
-# PAYMENT VIEWS
-# ============================================================================
-class PaymentDetailView(LoginRequiredMixin, DetailView):
-    model = Payment
-    template_name = 'payments/payment_detail.html'
-    context_object_name = 'payment'
+# class TenantDetailView(LoginRequiredMixin, DetailView):
+#     model = Tenant
+#     template_name = 'tenants/tenant_detail.html'
+#     context_object_name = 'tenant'
     
-    def get_queryset(self):
-        return Payment.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return Tenant.objects.filter(user=self.request.user)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
-    
-class PaymentUpdateView(LoginRequiredMixin, UpdateView):
-    model = Payment
-    template_name = 'payments/payment_form.html'
-    success_url = reverse_lazy('payment_list')
-    
-    def get_queryset(self):
-        return Payment.objects.filter(user=self.request.user)
-    
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Only show user's tenants
-        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
-        return form
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Payment updated successfully!')
-        return super().form_valid(form)
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         # Get payment history
+#         context['payments'] = self.object.rent_payments.all().order_by('-payment_date')
+#         # context['overdue_payments'] = self.object.rent_payments.filter(is_paid=False)
+#         return context
 
-class PaymentListView(LoginRequiredMixin, ListView):
-    model = Payment
-    template_name = 'payments/payment_list.html'
-    context_object_name = 'payments'
+
+# # ============================================================================
+# # PAYMENT VIEWS
+# # ============================================================================
+# class PaymentDetailView(LoginRequiredMixin, DetailView):
+#     model = Payment
+#     template_name = 'payments/payment_detail.html'
+#     context_object_name = 'payment'
     
-    def get_queryset(self):
-        queryset = Payment.objects.filter(user=self.request.user)
-        # Optional filter by tenant
-        tenant_id = self.request.GET.get('tenant')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-        return queryset.order_by('-paid_at')
+#     def get_queryset(self):
+#         return Payment.objects.filter(user=self.request.user)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['tenants'] = Tenant.objects.filter(user=self.request.user)
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         return context
     
-class PaymentCreateView(LoginRequiredMixin, CreateView):
-    model = Payment
-    fields = [
-        "tenant",
-        "rent_charge",
-        "amount",
-        "payment_reference",
-        "payment_method",
-    ]
-    template_name = 'payments/payment_form.html'
-    success_url = reverse_lazy('payment_list')
+# class PaymentUpdateView(LoginRequiredMixin, UpdateView):
+#     model = Payment
+#     template_name = 'payments/payment_form.html'
+#     success_url = reverse_lazy('payment_list')
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Only show user's tenants
-        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
-        return form
+#     def get_queryset(self):
+#         return Payment.objects.filter(user=self.request.user)
     
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        messages.success(self.request, 'Payment recorded successfully!')
-        return super().form_valid(form)
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Only show user's tenants
+#         form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+#         return form
     
-class RentChargeCreateView(LoginRequiredMixin, CreateView):
-    model = RentCharge
-    fields = ['tenant', 'year', 'month', 'amount_due']
-    template_name = 'rentcharges/rentcharge_form.html'
-    success_url = reverse_lazy('rent_charge_list')
+#     def form_valid(self, form):
+#         messages.success(self.request, 'Payment updated successfully!')
+#         return super().form_valid(form)
+
+# class PaymentListView(LoginRequiredMixin, ListView):
+#     model = Payment
+#     template_name = 'payments/payment_list.html'
+#     context_object_name = 'payments'
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Only show user's tenants
-        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
-        return form
+#     def get_queryset(self):
+#         queryset = Payment.objects.filter(user=self.request.user)
+#         # Optional filter by tenant
+#         tenant_id = self.request.GET.get('tenant')
+#         if tenant_id:
+#             queryset = queryset.filter(tenant_id=tenant_id)
+#         return queryset.order_by('-paid_at')
+    
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['tenants'] = Tenant.objects.filter(user=self.request.user)
+#         return context
+    
+# class PaymentCreateView(LoginRequiredMixin, CreateView):
+#     model = Payment
+#     fields = [
+#         "tenant",
+#         "rent_charge",
+#         "amount",
+#         "payment_reference",
+#         "payment_method",
+#     ]
+#     template_name = 'payments/payment_form.html'
+#     success_url = reverse_lazy('payment_list')
+    
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Only show user's tenants
+#         form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+#         return form
+    
+#     def form_valid(self, form):
+#         form.instance.user = self.request.user
+#         messages.success(self.request, 'Payment recorded successfully!')
+#         return super().form_valid(form)
+    
+# class RentChargeCreateView(LoginRequiredMixin, CreateView):
+#     model = RentCharge
+#     fields = ['tenant', 'year', 'month', 'amount_due']
+#     template_name = 'rentcharges/rentcharge_form.html'
+#     success_url = reverse_lazy('rent_charge_list')
+    
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Only show user's tenants
+#         form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+#         return form
     
  
 
-class RentChargeDetailView(LoginRequiredMixin, DetailView):
-    model = RentCharge
-    template_name = 'rentcharges/rentcharge_detail.html'
-    context_object_name = 'rentcharge'
+# class RentChargeDetailView(LoginRequiredMixin, DetailView):
+#     model = RentCharge
+#     template_name = 'rentcharges/rentcharge_detail.html'
+#     context_object_name = 'rentcharge'
     
-    def get_queryset(self):
-        return RentCharge.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return RentCharge.objects.filter(user=self.request.user)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         return context
     
 
 
-class RentChargeListView(LoginRequiredMixin, ListView):
-    model = RentCharge
-    template_name = 'rentcharges/rent_charge_list.html'
-    context_object_name = 'rentcharges'
+# class RentChargeListView(LoginRequiredMixin, ListView):
+#     model = RentCharge
+#     template_name = 'rentcharges/rent_charge_list.html'
+#     context_object_name = 'rentcharges'
 
-    # display only rent charges for current user
-    def get_queryset(self):
-        return RentCharge.objects.filter(user=self.request.user).order_by('-year', '-month')
+#     # display only rent charges for current user
+#     def get_queryset(self):
+#         return RentCharge.objects.filter(user=self.request.user).order_by('-year', '-month')
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['tenants'] = Tenant.objects.filter(user=self.request.user)
-        return context
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['tenants'] = Tenant.objects.filter(user=self.request.user)
+#         return context
 
     
-class RentChargeUpdateView(LoginRequiredMixin, UpdateView):
-    model = RentCharge
-    template_name = 'rentcharges/rentcharge_form.html'
-    success_url = reverse_lazy('rent_charge_list')
+# class RentChargeUpdateView(LoginRequiredMixin, UpdateView):
+#     model = RentCharge
+#     template_name = 'rentcharges/rentcharge_form.html'
+#     success_url = reverse_lazy('rent_charge_list')
     
-    def get_queryset(self):
-        return RentCharge.objects.filter(user=self.request.user)
+#     def get_queryset(self):
+#         return RentCharge.objects.filter(user=self.request.user)
     
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        # Only show user's tenants
-        form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
-        return form
+#     def get_form(self, form_class=None):
+#         form = super().get_form(form_class)
+#         # Only show user's tenants
+#         form.fields['tenant'].queryset = Tenant.objects.filter(user=self.request.user)
+#         return form
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Rent charge updated successfully!')
-        return super().form_valid(form)
+#     def form_valid(self, form):
+#         messages.success(self.request, 'Rent charge updated successfully!')
+#         return super().form_valid(form)
 
 
-@login_required
-def bulk_create_rent_charges(request):
-    current_year = timezone.now().year
-    current_month = timezone.now().month
+# @login_required
+# def bulk_create_rent_charges(request):
+#     current_year = timezone.now().year
+#     current_month = timezone.now().month
 
-    # Filter by current user
-    active_tenants = Tenant.objects.filter(
-        user=request.user, 
-        is_active=True,
-        house__isnull=False  # Only tenants with houses
-    ).select_related("house")
+#     # Filter by current user
+#     active_tenants = Tenant.objects.filter(
+#         user=request.user, 
+#         is_active=True,
+#         house__isnull=False  # Only tenants with houses
+#     ).select_related("house")
 
-    active_tenants_count = active_tenants.count()
+#     active_tenants_count = active_tenants.count()
 
-    # Calculate expected total rent safely
-    total_rent = sum(
-        tenant.house.house_rent_amount
-        for tenant in active_tenants
-        if tenant.house
-    )
+#     # Calculate expected total rent safely
+#     total_rent = sum(
+#         tenant.house.house_rent_amount
+#         for tenant in active_tenants
+#         if tenant.house
+#     )
 
-    if request.method == "POST":
-        month = request.POST.get("month")
-        year = request.POST.get("year")
-        tenant_ids = request.POST.getlist("tenant_ids")
+#     if request.method == "POST":
+#         month = request.POST.get("month")
+#         year = request.POST.get("year")
+#         tenant_ids = request.POST.getlist("tenant_ids")
 
-        if not month or not year:
-            messages.error(request, "Please select month and year.")
-            return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
+#         if not month or not year:
+#             messages.error(request, "Please select month and year.")
+#             return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
 
-        if not tenant_ids:
-            messages.warning(request, "No tenants selected.")
-            return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
+#         if not tenant_ids:
+#             messages.warning(request, "No tenants selected.")
+#             return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
 
-        # Convert to integers
-        try:
-            month = int(month)
-            year = int(year)
-            tenant_ids = [int(tid) for tid in tenant_ids]
-        except ValueError:
-            messages.error(request, "Invalid month, year, or tenant selection.")
-            return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
+#         # Convert to integers
+#         try:
+#             month = int(month)
+#             year = int(year)
+#             tenant_ids = [int(tid) for tid in tenant_ids]
+#         except ValueError:
+#             messages.error(request, "Invalid month, year, or tenant selection.")
+#             return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
 
-        # Create rent charges
-        created_count = 0
-        skipped_count = 0
-        error_count = 0
+#         # Create rent charges
+#         created_count = 0
+#         skipped_count = 0
+#         error_count = 0
 
-        with transaction.atomic():
-            for tenant_id in tenant_ids:
-                try:
-                    tenant = Tenant.objects.get(id=tenant_id, user=request.user)
+#         with transaction.atomic():
+#             for tenant_id in tenant_ids:
+#                 try:
+#                     tenant = Tenant.objects.get(id=tenant_id, user=request.user)
                     
-                    # Check if already exists
-                    if RentCharge.objects.filter(
-                        tenant=tenant,
-                        year=year,
-                        month=month
-                    ).exists():
-                        skipped_count += 1
-                        continue
+#                     # Check if already exists
+#                     if RentCharge.objects.filter(
+#                         tenant=tenant,
+#                         year=year,
+#                         month=month
+#                     ).exists():
+#                         skipped_count += 1
+#                         continue
                     
-                    # Create rent charge
-                    RentCharge.objects.create(
-                        user=request.user,
-                        tenant=tenant,
-                        year=year,
-                        month=month,
-                        amount_due=tenant.house.house_rent_amount
-                    )
-                    created_count += 1
+#                     # Create rent charge
+#                     RentCharge.objects.create(
+#                         user=request.user,
+#                         tenant=tenant,
+#                         year=year,
+#                         month=month,
+#                         amount_due=tenant.house.house_rent_amount
+#                     )
+#                     created_count += 1
                     
-                except Tenant.DoesNotExist:
-                    error_count += 1
-                    logger.error(f"Tenant {tenant_id} not found for user {request.user.id}")
-                except Exception as e:
-                    error_count += 1
-                    logger.error(f"Error creating rent charge for tenant {tenant_id}: {str(e)}")
+#                 except Tenant.DoesNotExist:
+#                     error_count += 1
+#                     logger.error(f"Tenant {tenant_id} not found for user {request.user.id}")
+#                 except Exception as e:
+#                     error_count += 1
+#                     logger.error(f"Error creating rent charge for tenant {tenant_id}: {str(e)}")
 
-        # Success messages
-        month_name = dict(RentCharge.MONTH_CHOICES).get(month, month)
+#         # Success messages
+#         month_name = dict(RentCharge.MONTH_CHOICES).get(month, month)
         
-        if created_count > 0:
-            messages.success(
-                request, 
-                f"✓ Successfully created {created_count} rent charge(s) for {month_name} {year}"
-            )
-        if skipped_count > 0:
-            messages.info(
-                request, 
-                f"⊘ Skipped {skipped_count} - charges already exist"
-            )
-        if error_count > 0:
-            messages.error(
-                request, 
-                f"✗ Failed to create {error_count} charge(s)"
-            )
+#         if created_count > 0:
+#             messages.success(
+#                 request, 
+#                 f"✓ Successfully created {created_count} rent charge(s) for {month_name} {year}"
+#             )
+#         if skipped_count > 0:
+#             messages.info(
+#                 request, 
+#                 f"⊘ Skipped {skipped_count} - charges already exist"
+#             )
+#         if error_count > 0:
+#             messages.error(
+#                 request, 
+#                 f"✗ Failed to create {error_count} charge(s)"
+#             )
         
-        return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
+#         return redirect("rent_charge_bulk_create")  # ✅ Fixed: use URL name
 
-    context = {
-        "current_year": current_year,
-        "current_month": current_month,
-        "active_tenants": active_tenants,
-        "active_tenants_count": active_tenants_count,
-        "total_rent": total_rent,
-        "months": RentCharge.MONTH_CHOICES,
-        "years": range(current_year - 1, current_year + 2),
-    }
+#     context = {
+#         "current_year": current_year,
+#         "current_month": current_month,
+#         "active_tenants": active_tenants,
+#         "active_tenants_count": active_tenants_count,
+#         "total_rent": total_rent,
+#         "months": RentCharge.MONTH_CHOICES,
+#         "years": range(current_year - 1, current_year + 2),
+#     }
 
-    return render(request, "rentcharges/rentcharge_bulk_create.html", context)
-=======
->>>>>>> 9385127 ( added a notification featur to the app to allow sending sms to tenants)
+#     return render(request, "rentcharges/rentcharge_bulk_create.html", context)

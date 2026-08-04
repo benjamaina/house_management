@@ -1,8 +1,8 @@
-🏠 House Management System — Technical Highlights
+House Management System — Technical Highlights
 
 A hybrid Django application for managing rental properties, tenants, and rent records, showcasing backend development, relational data handling, and performance optimization.
 
-🎯 Purpose
+Purpose
 
 Demonstrates real-world backend development skills:
 
@@ -14,26 +14,6 @@ Performance optimization and testing
 
 Designed to showcase clear thinking and problem-solving for technical reviewers.
 
-🧱 Architecture Overview
-
-┌─────────────────────────────────────────────────────────────┐
-│                     YOUR SYSTEM                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────┐      ┌──────────────┐      ┌───────────┐ │
-│  │   Django     │      │    Redis     │      │  Celery   │ │
-│  │   Web App    │─────▶│  (Message    │◀─────│  Worker   │ │
-│  │              │      │   Broker)    │      │           │ │
-│  └──────────────┘      └──────────────┘      └───────────┘ │
-│       │                       │                     │        │
-│       │                       │                     │        │
-│       │                       │                     │        │
-│  ┌────▼─────────────────────▼─────────────────────▼──────┐ │
-│  │              Celery Beat (Scheduler)                   │ │
-│  │         "Run this task every day at 9 AM"              │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
 
 Backend Framework: Django + Django REST Framework
 
@@ -52,14 +32,14 @@ JSON REST API (CRUD endpoints)
 Testing & Performance:
 
 Unit testing with Django’s test framework
-🔐 Authentication (JWT)
+ Authentication (JWT)
 Stress testing with Locust
 
 Pagination for large datasets
 
 Efficient relational fetching with select_related
 
-⚡ Key Features (Technical)
+ Key Features (Technical)
 
 Relational Data Handling:
 
@@ -99,7 +79,7 @@ Unit tests covering core models and API endpoints
 
 Documentation and usage examples
 
-🔗 Application Structure
+ Application Structure
 
 Web (HTML)
 
@@ -119,7 +99,7 @@ API (JSON)
 
 Fully authenticated endpoints
 
-🛠️ How to Run Locally
+ How to Run Locally
 git clone https://github.com/benjamaina/house-management.git
 cd house-management
 python -m venv venv
@@ -128,7 +108,7 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
 
-📌 Project Status
+ Project Status
 
 Actively developed, backend-focused
 

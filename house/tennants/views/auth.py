@@ -132,7 +132,36 @@ class RegisterUserView(APIView):
                 return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+# login json response view
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@csrf_exempt
+def user_login(request):
+    """Login endpoint for regular users"""
+    logger.debug(f"User login attempt with data: {request.data}")
+    logger.debug(request.data)
+    print("DEBUG LOGIN BODY →", request.data)
 
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        refresh = RefreshToken.for_user(user)
+        access_token = refresh.access_token
+
+        return Response({
+            "message": "Login successful",
+            "access_token": str(access_token),
+            "refresh_token": str(refresh),
+        }, status=status.HTTP_200_OK)
+    else:
+        logger.debug(f"Authentication failed for user: {username}")
+        return Response({
+            "message": "Invalid credentials",
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    
 def register(request):
     if request.method == "POST":
         form = RegistrationForm(request.POST)

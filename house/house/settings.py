@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
-DEBUG = False
+DEBUG = True
 REDIS_HOST = os.getenv("REDIS_URL")
 
 # twilio settings
@@ -275,7 +275,7 @@ LOGOUT_REDIRECT_URL = '/'
 
 # never login user automatically
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 300  # 5 minutes
+SESSION_COOKIE_AGE = 3000  # 5 minutes
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/

@@ -63,9 +63,17 @@ def set_cached_response(request, data, prefix=""):
     key = make_cache_key(request, prefix)
     cache.set(key, data, CACHE_TTL)
 
-def clear_cache_pattern(request, prefix=""):
-    cache.delete_pattern(f"*{prefix}*")
+# def clear_cache_pattern(request, prefix=""):
+#     cache.delete_pattern(f"*{prefix}*")
 
+def clear_cache_pattern(request, prefix):
+    # fallback for LocMemCache (DEBUG mode)
+    if hasattr(cache, "delete_pattern"):
+        cache.delete_pattern(f"*{prefix}*")
+    else:
+        # simple approach: delete exact key if using LocMemCache
+        key = f"{prefix}:{request.user.id}"  # or whatever key you are using
+        cache.delete(key)
 
 # ============================================================================
 # TENANT VIEWS
@@ -219,6 +227,11 @@ class FlatBuildingDetailView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         return super().destroy(request, *args, **kwargs)
+    
+
+    def perform_create(self, serializer):
+        flat_building = serializer.save(user=self.request.user)
+        clear_cache_pattern(self.request, "flats")  
 
 
 # ============================================================================
@@ -406,6 +419,52 @@ def register(request):
         form = RegistrationForm()
     
     return render(request, "register.html", {"form": form})
+
+
+
+
+# =========================================================
+# rentcharge views (not fully implemented yet, but added for completeness)
+# =========================================================
+class RentChargeListView(generics.ListCreateAPIView):
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Only show rent charges for current user"""
+        return RentCharge.objects.filter(
+            user=self.request.user
+        ).order_by('id')
+
+    def get(self, request, *args, **kwargs):
+        cached = get_cached_response(request, prefix="rent_charges")
+        if cached:
+            return Response(cached)
+        response = super().get(request, *args, **kwargs)
+        set_cached_response(request, response.data, prefix="rent_charges")
+        return response
+
+    def perform_create(self, serializer):
+        rent_charge = serializer.save(user=self.request.user)
+        clear_cache_pattern(self.request, "rent_charges")
+
+
+class RentChargeDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter to user's rent charges, optionally by tenant"""
+        queryset = RentCharge.objects.filter(user=self.request.user)
+        
+        tenant_id = self.request.query_params.get('tenant_id')
+        if tenant_id:
+            queryset = queryset.filter(tenant_id=tenant_id)
+        
+        return queryset.order_by('id')
+
+
+    
 
 
 

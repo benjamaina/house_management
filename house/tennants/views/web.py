@@ -30,7 +30,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 import hashlib
 import json
 import logging
-from tennants.forms import RegistrationForm
+from tennants.forms import RegistrationForm, RentChargeForm
 from django.shortcuts import render, redirect
 from django.db import transaction
 
@@ -472,6 +472,7 @@ class RentChargeListViewWeb(LoginRequiredMixin, ListView):
 
 class RentChargeUpdateViewWeb(LoginRequiredMixin, UpdateView):
     model = RentCharge
+    form_class = RentChargeForm
     template_name = 'rentcharges/rentcharge_form.html'
     success_url = reverse_lazy('rent_charge_list')
     

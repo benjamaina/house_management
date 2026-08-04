@@ -38,6 +38,7 @@ class FlatBuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlatBuilding
         fields = '__all__'
+        search_fields = ['name']
 
 class PaymentSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())

@@ -3,4 +3,5 @@
 -- SELECT * FROM django_migrations;
 
 -- show all tenants
+explain SELECT * FROM tennants;
 SELECT * FROM tennants_house;

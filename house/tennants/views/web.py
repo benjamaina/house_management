@@ -514,6 +514,7 @@ def bulk_create_rent_charges(request):
     if request.method == "POST":
         month = request.POST.get("month")
         year = request.POST.get("year")
+        +6
         tenant_ids = request.POST.getlist("tenant_ids")
 
         if not month or not year:

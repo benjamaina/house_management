@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import serializers, generics
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from yaml import serializer
 from tennants.models import Tenant, House, Payment, FlatBuilding, RentCharge
 from tennants.serializers import (TenantSerializer, HouseSerializer, PaymentSerializer,
                           FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer, ForgotPasswordSerializer)
@@ -257,8 +258,11 @@ class PaymentListView(generics.ListCreateAPIView):
         return response
 
     def perform_create(self, serializer):
-        payment = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "rent_payments")
+        try:
+            payment = serializer.save(user=self.request.user)
+            clear_cache_pattern(self.request, "rent_payments")
+        except ValidationError as e:
+            raise serializers.ValidationError({"detail": str(e)})
 
 
 class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):

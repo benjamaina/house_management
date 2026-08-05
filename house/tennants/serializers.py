@@ -17,6 +17,12 @@ class TenantSerializer(serializers.ModelSerializer):
         model = Tenant
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and 'house' in self.fields:
+            self.fields['house'].queryset = House.objects.filter(user=request.user)
+
 class HouseSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
@@ -24,11 +30,17 @@ class HouseSerializer(serializers.ModelSerializer):
         model = House
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and 'flat_building' in self.fields:
+            self.fields['flat_building'].queryset = FlatBuilding.objects.filter(user=request.user)
+
     def validate(self, attrs):
-        building = attrs.get('building')
+        building = attrs.get('flat_building')
         if building and building.houses.count() >= building.capacity:
             raise serializers.ValidationError(
-                f"Cannot add house. {building.name} can only have {building.capacity} houses."
+                f"Cannot add house. {building.building_name} can only have {building.capacity} houses."
             )
         return attrs
     
@@ -38,7 +50,9 @@ class FlatBuildingSerializer(serializers.ModelSerializer):
     class Meta:
         model = FlatBuilding
         fields = '__all__'
-        search_fields = ['name']
+        search_fields = ['building_name']
+
+
 
 class PaymentSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
@@ -47,6 +61,15 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request:            
+            if 'tenant' in self.fields:
+                self.fields['tenant'].queryset = Tenant.objects.filter(user=request.user)
+            if 'rent_charge' in self.fields:
+                self.fields['rent_charge'].queryset = RentCharge.objects.filter(user=request.user)
+            
 class RegisterAdminSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
@@ -120,3 +143,9 @@ class RentChargeSerializer(serializers.ModelSerializer):
     class Meta:
         model = RentCharge
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and 'tenant' in self.fields:
+            self.fields['tenant'].queryset = Tenant.objects.filter(user=request.user)

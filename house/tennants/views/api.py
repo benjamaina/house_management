@@ -1,477 +1,303 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.contrib.auth.decorators import login_required
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import serializers, generics
-from rest_framework.filters import OrderingFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from yaml import serializer
-from tennants.models import Tenant, House, Payment, FlatBuilding, RentCharge
-from tennants.serializers import (TenantSerializer, HouseSerializer, PaymentSerializer,
-                          FlatBuildingSerializer, RegisterAdminSerializer, AdminLoginSerializer, ForgotPasswordSerializer)
-import logging
-import requests
-from django.conf import settings
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, login
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.core.cache import cache
-from django.core.exceptions import ValidationError
-from rest_framework.decorators import permission_classes
-
-from django.contrib.auth.models import User
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status, permissions
-from rest_framework.exceptions import PermissionDenied, NotFound
-from rest_framework_simplejwt.tokens import RefreshToken
 import hashlib
-import json
 import logging
-from tennants.forms import RegistrationForm
-from django.shortcuts import render, redirect
-from django.db import transaction
 
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
+from django.conf import settings
 from django.contrib import messages
-from django.shortcuts import render
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-
+from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, serializers, status
+from rest_framework.filters import OrderingFilter
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.exceptions import APIException
+from tennants.models import FlatBuilding, House, Payment, RentCharge, Tenant
+from tennants.serializers import (
+    FlatBuildingSerializer, HouseSerializer, PaymentSerializer,
+    RentChargeSerializer, TenantSerializer,
+)
+from django.db.models import ProtectedError
 
 
 
 logger = logging.getLogger(__name__)
 
-CACHE_TTL = getattr(settings, 'CACHE_TTL', 60 * 15)
+
+class ProtectedDeleteConflict(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = (
+        "This record has financial history and can't be deleted. "
+        "Deactivate it instead."
+    )
+    default_code = "protected_delete"
+
+
+class ApiViewMixin:
+    cache_prefix = None
+
+    def handle_exception(self, exc):
+        if isinstance(exc, ProtectedError):
+            exc = ProtectedDeleteConflict()
+        elif isinstance(exc, DjangoValidationError):
+            exc = serializers.ValidationError({"detail": exc.messages})
+
+        return super().handle_exception(exc)
+
+    def _bust(self):
+        if self.cache_prefix:
+            clear_cache_pattern(self.request, self.cache_prefix)
+
+    def list(self, request, *args, **kwargs):
+        if self.cache_prefix:
+            cached = get_cached_response(request, self.cache_prefix)
+            if cached is not None:
+                return Response(cached)
+
+        response = super().list(request, *args, **kwargs)
+
+        if self.cache_prefix:
+            set_cached_response(request, response.data, self.cache_prefix)
+
+        return response
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        self._bust()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        self._bust()
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        self._bust()
+
+
+
+
+CACHE_TTL = getattr(settings, "CACHE_TTL", 60 * 5)
+
+
+# ============================================================================
+# CACHE HELPERS: per-user, per-prefix version counter.
+# Bumping the counter makes every old key unreachable, which works on LocMem and Redis.
+# ============================================================================
+
+def _user_id(request):
+    return getattr(request.user, "id", "anon")
+
+
+def _version_key(request, prefix):
+    return f"ver:{prefix}:{_user_id(request)}"
+
 
 def make_cache_key(request, prefix=""):
-    user_id = getattr(request.user, 'id', 'anonymous')
-    key = f"{prefix}:{user_id}:{request.get_full_path()}"
-    return hashlib.md5(key.encode('utf-8')).hexdigest()
+    version = cache.get(_version_key(request, prefix), 1)
+    raw = f"{prefix}:{version}:{_user_id(request)}:{request.get_full_path()}"
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
 
 def get_cached_response(request, prefix=""):
-    key = make_cache_key(request, prefix)
-    return cache.get(key)
+    return cache.get(make_cache_key(request, prefix))
+
 
 def set_cached_response(request, data, prefix=""):
-    key = make_cache_key(request, prefix)
-    cache.set(key, data, CACHE_TTL)
+    cache.set(make_cache_key(request, prefix), data, CACHE_TTL)
 
-# def clear_cache_pattern(request, prefix=""):
-#     cache.delete_pattern(f"*{prefix}*")
 
 def clear_cache_pattern(request, prefix):
-    # fallback for LocMemCache (DEBUG mode)
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern(f"*{prefix}*")
-    else:
-        # simple approach: delete exact key if using LocMemCache
-        key = f"{prefix}:{request.user.id}"  # or whatever key you are using
-        cache.delete(key)
+    key = _version_key(request, prefix)
+    try:
+        cache.incr(key)
+    except ValueError:               # key doesn't exist yet
+        cache.set(key, 2, None)
+
+
+class ApiViewMixin:
+    """
+    - turns Django ValidationError into a 400 (on create, update AND delete)
+    - caches list responses and invalidates on create/update/delete
+    """
+    cache_prefix = None
+
+    def handle_exception(self, exc):
+        if isinstance(exc, ProtectedError):
+            exc = serializers.ValidationError(
+                {"detail": "This record has financial history and can't be deleted. Deactivate it instead."}
+            )
+        elif isinstance(exc, DjangoValidationError):
+            exc = serializers.ValidationError({"detail": exc.messages})
+        return super().handle_exception(exc)
+
+    def _bust(self):
+        if self.cache_prefix:
+            clear_cache_pattern(self.request, self.cache_prefix)
+
+    def list(self, request, *args, **kwargs):
+        if self.cache_prefix:
+            cached = get_cached_response(request, self.cache_prefix)
+            if cached is not None:
+                return Response(cached)
+        response = super().list(request, *args, **kwargs)
+        if self.cache_prefix:
+            set_cached_response(request, response.data, self.cache_prefix)
+        return response
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        self._bust()
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        self._bust()
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        self._bust()
+
 
 # ============================================================================
-# TENANT VIEWS
+# TENANTS
 # ============================================================================
 
-class TenantListView(generics.ListCreateAPIView):
+class TenantListView(ApiViewMixin, generics.ListCreateAPIView):
     serializer_class = TenantSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['is_active', 'house', 'full_name']
-    ordering_fields = ['full_name', 'created_at']
+    filterset_fields = ["is_active", "house", "full_name"]
+    ordering_fields = ["full_name", "created_at"]
+    cache_prefix = "tenants"
 
     def get_queryset(self):
-        """Filter tenants to only show current user's tenants"""
-        return Tenant.objects.filter(user=self.request.user).order_by('id')
-    
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="tenants")
-        if cached:
-            logger.debug(f"Serving cached tenants for user={request.user}") 
-            return Response(cached)
-        
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="tenants")
-        logger.debug(f"Caching tenants for user={request.user}")
-        return response
+        return (Tenant.objects.filter(user=self.request.user)
+                .select_related("house__flat_building").order_by("id"))
 
-    def perform_create(self, serializer):
-    #    return proper response on capacity validation error during tenant creation
-        try:
-            tenant = serializer.save(user=self.request.user)
-            clear_cache_pattern(self.request, "tenants")
-        except ValidationError as e:
-            raise serializers.ValidationError({"detail": str(e)})
 
-class TenantDetailView(generics.RetrieveUpdateDestroyAPIView):
+class TenantDetailView(ApiViewMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TenantSerializer
     permission_classes = [IsAuthenticated]
+    cache_prefix = "tenants"
 
     def get_queryset(self):
-        """Filter to user's tenants, optionally by house_id"""
-        queryset = Tenant.objects.filter(user=self.request.user)
-        house_id = self.request.query_params.get('house_id')
+        queryset = (Tenant.objects.filter(user=self.request.user)
+                    .select_related("house__flat_building"))
+        house_id = self.request.query_params.get("house_id")
         if house_id:
             queryset = queryset.filter(house_id=house_id)
-            logger.debug(f"Filtered tenants by house_id={house_id} for user={self.request.user}")
-        return queryset.order_by('id')
+        return queryset.order_by("id")
 
 
 # ============================================================================
-# HOUSE VIEWS
+# HOUSES
 # ============================================================================
 
-class HouseListView(generics.ListCreateAPIView):
+class HouseListView(ApiViewMixin, generics.ListCreateAPIView):
     serializer_class = HouseSerializer
     permission_classes = [IsAuthenticated]
-    ordering_fields = ['house_number', 'house_size', 'house_rent_amount']
+    filter_backends = [OrderingFilter]          # ordering_fields did nothing without this
+    ordering_fields = ["house_number", "house_size", "house_rent_amount"]
+    cache_prefix = "houses"
 
     def get_queryset(self):
-        """Filter houses to only show current user's houses"""
-        print("Fetching houses for user:", self.request.user)
-        queryset = House.objects.filter(user=self.request.user)
-        print("Initial queryset count:", queryset.count())
-        
-        # Optional filter by flat_building
-        flat_building_id = self.request.query_params.get('flat_building_id')
+        queryset = House.objects.filter(user=self.request.user).select_related("flat_building")
+        flat_building_id = self.request.query_params.get("flat_building_id")
         if flat_building_id:
             queryset = queryset.filter(flat_building_id=flat_building_id)
-            logger.info(f"Filtering houses by flat_building_id={flat_building_id} for user={self.request.user}")
-        
-        return queryset.order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="houses")
-        if cached:
-            logger.debug(f"Serving cached houses for user={request.user}")
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="houses")
-        logger.debug(f"Caching houses for user={request.user}")
-        return response
-    
+        return queryset.order_by("id")
 
 
-    def perform_create(self, serializer):
-        """return proper response on capacity validation error during house creation"""
-        try:
-            house = serializer.save(user=self.request.user)
-            clear_cache_pattern(self.request, "houses")
-        except ValidationError as e:
-            raise serializers.ValidationError({"detail": str(e)})
-
-class HouseDetailView(generics.RetrieveUpdateDestroyAPIView):
+class HouseDetailView(ApiViewMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = HouseSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'pk'
-    
+    cache_prefix = "houses"
+
     def get_queryset(self):
-        """Filter to user's houses only"""
-        return House.objects.filter(user=self.request.user).order_by('id')
+        return (House.objects.filter(user=self.request.user)
+                .select_related("flat_building").order_by("id"))
 
 
 # ============================================================================
-# FLAT BUILDING VIEWS
+# FLAT BUILDINGS
 # ============================================================================
 
-class FlatBuildingListView(generics.ListCreateAPIView):
+class FlatBuildingListView(ApiViewMixin, generics.ListCreateAPIView):
     serializer_class = FlatBuildingSerializer
     permission_classes = [IsAuthenticated]
+    cache_prefix = "flats"
 
     def get_queryset(self):
-        """Filter flat buildings to current user, optionally by name"""
         queryset = FlatBuilding.objects.filter(user=self.request.user)
-        
-        # Optional search by name
-        name = self.request.query_params.get('name')
+        name = self.request.query_params.get("name")
         if name:
-            # FIX: Changed from 'biulding_name' to 'building_name'
             queryset = queryset.filter(building_name__icontains=name)
-        
-        return queryset.order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="flats")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="flats")
-        return response
-
-    def perform_create(self, serializer):
-        flat_building = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "flats")
+        return queryset.order_by("id")
 
 
-class FlatBuildingDetailView(generics.RetrieveUpdateDestroyAPIView):
+class FlatBuildingDetailView(ApiViewMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = FlatBuildingSerializer
     permission_classes = [IsAuthenticated]
-    lookup_field = 'pk' 
-    
+    cache_prefix = "flats"
+
     def get_queryset(self):
-        """Filter to user's buildings only - no name search needed here"""
-        return FlatBuilding.objects.filter(user=self.request.user).order_by('id')
-    
+        return FlatBuilding.objects.filter(user=self.request.user).order_by("id")
+
     def destroy(self, request, *args, **kwargs):
-        """Prevent deletion if building has houses"""
-        flat_building = self.get_object()
-        if flat_building.houses.exists():
-            return Response(
-                {"message": "Cannot delete FlatBuilding with existing houses."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if self.get_object().houses.exists():
+            return Response({"message": "Cannot delete FlatBuilding with existing houses."},
+                            status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
-    
-
-    def perform_create(self, serializer):
-        flat_building = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "flats")  
 
 
 # ============================================================================
-# RENT PAYMENT VIEWS
+# PAYMENTS
 # ============================================================================
 
-class PaymentListView(generics.ListCreateAPIView):
+class PaymentListView(ApiViewMixin, generics.ListCreateAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
+    cache_prefix = "rent_payments"
 
     def get_queryset(self):
-        """Only show paid payments for current user"""
-        return Payment.objects.filter(
-            user=self.request.user
-        ).order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="rent_payments")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="rent_payments")
-        return response
-
-    def perform_create(self, serializer):
-        try:
-            payment = serializer.save(user=self.request.user)
-            clear_cache_pattern(self.request, "rent_payments")
-        except ValidationError as e:
-            raise serializers.ValidationError({"detail": str(e)})
+        return (Payment.objects.filter(user=self.request.user)
+                .select_related("tenant", "rent_charge").order_by("id"))
 
 
-class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
+class PaymentDetailView(ApiViewMixin, generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated]
+    cache_prefix = "rent_payments"
 
     def get_queryset(self):
-        """Filter to user's payments, optionally by tenant"""
-        queryset = Payment.objects.filter(user=self.request.user)
-        
-        tenant_id = self.request.query_params.get('tenant_id')
+        queryset = (Payment.objects.filter(user=self.request.user)
+                    .select_related("tenant", "rent_charge"))
+        tenant_id = self.request.query_params.get("tenant_id")
         if tenant_id:
             queryset = queryset.filter(tenant_id=tenant_id)
-        
-        return queryset.order_by('id')
+        return queryset.order_by("id")
 
 
-class RentChargeListView(generics.ListCreateAPIView):
-    serializer_class = PaymentSerializer
+# ============================================================================
+# RENT CHARGES (the previously duplicated, PaymentSerializer-backed views)
+# ============================================================================
+
+class RentChargeListView(ApiViewMixin, generics.ListCreateAPIView):
+    serializer_class = RentChargeSerializer
     permission_classes = [IsAuthenticated]
+    cache_prefix = "rent_charges"
 
     def get_queryset(self):
-        """Only show rent charges for current user"""
-        return RentCharge.objects.filter(
-            user=self.request.user
-        ).order_by('id')
+        return (RentCharge.objects.filter(user=self.request.user)
+                .select_related("tenant").order_by("id"))
 
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="rent_charges")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="rent_charges")
-        return response
 
-    def perform_create(self, serializer):
-        rent_charge = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "rent_charges")
-
-class RentChargeDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = PaymentSerializer
+class RentChargeDetailView(ApiViewMixin, generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = RentChargeSerializer
     permission_classes = [IsAuthenticated]
+    cache_prefix = "rent_charges"
 
     def get_queryset(self):
-        """Filter to user's rent charges, optionally by tenant"""
-        queryset = RentCharge.objects.filter(user=self.request.user)
-        
-        tenant_id = self.request.query_params.get('tenant_id')
+        queryset = RentCharge.objects.filter(user=self.request.user).select_related("tenant")
+        tenant_id = self.request.query_params.get("tenant_id")
         if tenant_id:
             queryset = queryset.filter(tenant_id=tenant_id)
-        
-        return queryset.order_by('id')
-
-# ============================================================================
-# AUTHENTICATION VIEWS
-# ============================================================================
-
-
-
-class RegisterAdminView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = RegisterAdminSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            email = serializer.validated_data.get('email', '')
-
-            try:
-                User.objects.create_superuser(username=username, password=password, email=email)
-                return Response({"message": "Admin registered successfully."}, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    
-class AdminLogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        try:
-            RefreshToken(request.data['refresh_token']).blacklist()
-            return Response({"message": "Logout successful"}, status=status.HTTP_205_RESET_CONTENT)
-        except Exception as e:
-            return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        
-# ============================================================================
-# LOGIN USER VIEW
-# ============================================================================
-@api_view(['POST'])
-@permission_classes([AllowAny])
-@csrf_exempt
-def user_login(request):
-    """Login endpoint for regular users"""
-    logger.debug(f"User login attempt with data: {request.data}")
-    logger.debug(request.data)
-    print("DEBUG LOGIN BODY →", request.data)
-
-    username = request.data.get('username')
-    password = request.data.get('password')
-
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        refresh = RefreshToken.for_user(user)
-        access_token = refresh.access_token
-
-        return Response({
-            "message": "Login successful",
-            "access_token": str(access_token),
-            "refresh_token": str(refresh),
-        }, status=status.HTTP_200_OK)
-    else:
-        logger.debug(f"Authentication failed for user: {username}")
-        return Response({
-            "message": "Invalid credentials",
-        }, status=status.HTTP_401_UNAUTHORIZED)
-    
-# ===========================================================================
-# REGISTER USER VIEW
-# ===========================================================================
-# for normal user registration, not admin
-class RegisterUserView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        serializer = RegisterAdminSerializer(data=request.data)
-        if serializer.is_valid():
-            username = serializer.validated_data['username']
-            password = serializer.validated_data['password']
-            email = serializer.validated_data.get('email', '')
-
-            try:
-                User.objects.create_user(username=username, password=password, email=email)
-                return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
-def register(request):
-    if request.method == "POST":
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            # set staff/superuser flags if needed
-            user.is_staff = False
-            user.is_superuser = False
-            user.save()
-            
-            # ✅ Automatically log the user in
-            login(request, user)
-            
-            # ✅ Redirect into the app (e.g., dashboard)
-            return redirect("dashboard")  # replace "dashboard" with your main app URL name
-            
-    else:
-        form = RegistrationForm()
-    
-    return render(request, "register.html", {"form": form})
-
-
-
-
-# =========================================================
-# rentcharge views (not fully implemented yet, but added for completeness)
-# =========================================================
-class RentChargeListView(generics.ListCreateAPIView):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Only show rent charges for current user"""
-        return RentCharge.objects.filter(
-            user=self.request.user
-        ).order_by('id')
-
-    def get(self, request, *args, **kwargs):
-        cached = get_cached_response(request, prefix="rent_charges")
-        if cached:
-            return Response(cached)
-        response = super().get(request, *args, **kwargs)
-        set_cached_response(request, response.data, prefix="rent_charges")
-        return response
-
-    def perform_create(self, serializer):
-        rent_charge = serializer.save(user=self.request.user)
-        clear_cache_pattern(self.request, "rent_charges")
-
-
-class RentChargeDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = PaymentSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Filter to user's rent charges, optionally by tenant"""
-        queryset = RentCharge.objects.filter(user=self.request.user)
-        
-        tenant_id = self.request.query_params.get('tenant_id')
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
-        
-        return queryset.order_by('id')
-
-
-    
-
-
-
-
-
-
+        return queryset.order_by("id")

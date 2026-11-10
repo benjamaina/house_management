@@ -1,151 +1,104 @@
-from django.conf import settings
-from django.db.models.signals import post_save,post_delete,pre_delete, pre_save
-from django.dispatch import receiver
-from django.core.mail import send_mail
-from .models import Payment, House
-from django.core.exceptions import ValidationError
-from rest_framework.authtoken.models import Token
-from django.contrib.auth.models import User
-from django.db.models.signals import pre_save
-from .models import Tenant, FlatBuilding, House
-from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.core.cache import cache
- 
-
-from django.utils import timezone
-from datetime import timedelta
-from .models import RentCharge, Payment, Tenant
-from tennants.services.sms import TwilioNotificationService
 import logging
+
+from django.contrib.auth.models import User
+from django.db.models.signals import post_delete, post_save, pre_save
+from django.dispatch import receiver
+from django.utils import timezone
+from rest_framework.authtoken.models import Token
+
+from tennants.services.sms import TwilioNotificationService
+from .models import House, Payment, RentCharge, Tenant, HistoryReport
 
 logger = logging.getLogger(__name__)
 
-notification_service = TwilioNotificationService()
+_service = None
+
+
+@receiver(post_save, sender=Payment)
+def record_ledger_entry(sender, instance, created, **kwargs):
+    if created:
+        HistoryReport.record(instance)
+
+def get_notification_service():
+    """Created on first use, so a missing Twilio env var can't stop Django booting."""
+    global _service
+    if _service is None:
+        _service = TwilioNotificationService()
+    return _service
+
+
+def _safe_send(label, func, obj):
+    """SMS is best-effort: a failure must never roll back or crash the save."""
+    try:
+        success, result = func(obj)
+        if success:
+            logger.info("%s sent", label)
+        else:
+            logger.warning("%s not sent: %s", label, result)
+    except Exception:
+        logger.exception("%s failed", label)
 
 
 @receiver(post_save, sender=RentCharge)
 def send_rent_reminder_on_create(sender, instance, created, **kwargs):
-    """
-    Send rent reminder when RentCharge is created
-    Checks if reminder should be sent based on tenant's preference
-    """
-    if created and instance.tenant.is_active:
-        tenant = instance.tenant
-        days_until_due = (tenant.rent_due_date - timezone.now().date()).days
-        
-        # Send reminder if within the reminder window
-        if 0 <= days_until_due <= tenant.reminder_days_before:
-            logger.info(f"Sending rent reminder to {tenant.full_name}")
-            success, result = notification_service.send_rent_due_reminder(instance)
-            
-            if success:
-                logger.info(f"Rent reminder sent successfully to {tenant.full_name}")
-            else:
-                logger.error(f"Failed to send rent reminder to {tenant.full_name}: {result}")
+    if not created or not instance.tenant.is_active:
+        return
+    tenant = instance.tenant
+    due = tenant.due_date_for(instance.year, instance.month)
+    days_until_due = (due - timezone.localdate()).days
+    if 0 <= days_until_due <= tenant.reminder_days_before:
+        _safe_send(f"Rent reminder to {tenant.full_name}",
+                   get_notification_service().send_rent_due_reminder, instance)
 
 
 @receiver(post_save, sender=Payment)
 def send_payment_confirmation(sender, instance, created, **kwargs):
-    """
-    Send payment confirmation SMS when payment is recorded
-    """
     if created:
-        logger.info(f"Sending payment confirmation to {instance.tenant.full_name}")
-        success, result = notification_service.send_payment_confirmation(instance)
-        
-        if success:
-            logger.info(f"Payment confirmation sent to {instance.tenant.full_name}")
-        else:
-            logger.error(f"Failed to send payment confirmation: {result}")
+        _safe_send(f"Payment confirmation to {instance.tenant.full_name}",
+                   get_notification_service().send_payment_confirmation, instance)
 
 
 @receiver(post_save, sender=Tenant)
 def send_welcome_message(sender, instance, created, **kwargs):
-    """
-    Send welcome message when new tenant is created and assigned to a house
-    """
-    if created and instance.house and instance.is_active:
-        logger.info(f"Sending welcome message to {instance.full_name}")
-        success, result = notification_service.send_move_in_welcome(instance)
-        
-        if success:
-            logger.info(f"Welcome message sent to {instance.full_name}")
-        else:
-            logger.error(f"Failed to send welcome message: {result}")
+    if created and instance.house_id and instance.is_active:
+        _safe_send(f"Welcome message to {instance.full_name}",
+                   get_notification_service().send_move_in_welcome, instance)
 
+
+# --- house occupancy -------------------------------------------------------
 
 @receiver(pre_save, sender=Tenant)
-def notify_on_tenant_activation(sender, instance, **kwargs):
-    """
-    Send notification when tenant status changes
-    """
+def remember_previous_house(sender, instance, **kwargs):
+    instance._old_house_id = None
     if instance.pk:
-        try:
-            old_instance = Tenant.objects.get(pk=instance.pk)
-            
-            # If tenant is being deactivated
-            if old_instance.is_active and not instance.is_active:
-                logger.info(f"Tenant {instance.full_name} deactivated")
-                # You can send a move-out confirmation here if needed
-                
-            # If tenant is being reactivated
-            elif not old_instance.is_active and instance.is_active:
-                logger.info(f"Tenant {instance.full_name} reactivated")
-                
-        except Tenant.DoesNotExist:
-            pass
+        instance._old_house_id = (
+            Tenant.objects.filter(pk=instance.pk).values_list("house_id", flat=True).first()
+        )
 
 
+@receiver(post_save, sender=Tenant)
+def update_house_occupation_on_save(sender, instance, **kwargs):
+    # recompute both the new house and the one the tenant just left
+    ids = {instance.house_id, getattr(instance, "_old_house_id", None)} - {None}
+    for house in House.objects.filter(pk__in=ids):
+        house.auto_change_occupation()
+
+
+@receiver(post_delete, sender=Tenant)
+def update_house_occupation_on_delete(sender, instance, **kwargs):
+    if instance.house_id:
+        for house in House.objects.filter(pk=instance.house_id):
+            house.auto_change_occupation()
+
+
+# --- auth ------------------------------------------------------------------
 
 @receiver(post_save, sender=User)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
-        Token.objects.create(user=instance)
+        Token.objects.get_or_create(user=instance)
 
-
-
-@receiver(post_delete, sender=Tenant)
-def update_house_occupation(sender, instance, **kwargs):
-    house_id = instance.house_id  # just get the raw ID (safe)
-    if house_id and House.objects.filter(pk=house_id).exists():
-        house = House.objects.get(pk=house_id)
-        house.auto_change_occupation()
-
-
-# whenever a Tenant is created or updated
-@receiver(post_save, sender=Tenant)
-def update_house_occupation_on_save(sender, instance, **kwargs):
-    
-    if instance.house:
-        instance.house.auto_change_occupation()
-
-# whenever a Payment is created if ghe amount field is blunk we getthe amount from the house rent
-@receiver(pre_save, sender=Payment)
-def set_payment_amount(sender, instance, **kwargs):
-    if instance.amount is None or instance.amount == 0:
-        if instance.tenant and instance.tenant.house:
-            instance.amount = instance.tenant.house.house_rent_amount
-
-
-@receiver(pre_delete, sender=Payment)
-def adjust_tenant_balance_on_delete(sender, instance, **kwargs):
-    tenant = instance.tenant
-    if tenant:
-        tenant.balance += instance.amount_paid
-
-
-@receiver([post_save, post_delete], sender=Tenant)
-def clear_tenant_cache(sender, instance, **kwargs):
-    cache_key = f"tenant:{instance.id}"
-    cache.delete(cache_key)
-
-
-
-@receiver([post_save, post_delete], sender=House)
-def clear_building_cache(sender, instance, **kwargs):
-    if instance.flat_building_id:
-        cache.delete(f"flat_{instance.flat_building_id}_occupied")
-        cache.delete(f"flat_{instance.flat_building_id}_vacant")
-        cache.delete(f"flat_{instance.flat_building_id}_tenant_count")
+@receiver(post_save, sender=Payment)
+def send_payment_confirmation(sender, instance, created, **kwargs):
+    if created and not getattr(instance, "_skip_sms", False):
+        ...  # unchanged

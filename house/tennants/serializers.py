@@ -12,6 +12,7 @@ User = get_user_model()
 
 class TenantSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    owned_fields = ("house",)
 
     class Meta:
         model = Tenant
@@ -25,6 +26,7 @@ class TenantSerializer(serializers.ModelSerializer):
 
 class HouseSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    owned_fields = ("flat_building",)
 
     class Meta:
         model = House
@@ -46,6 +48,7 @@ class HouseSerializer(serializers.ModelSerializer):
     
 class FlatBuildingSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    owned_fields = ("user",)
 
     class Meta:
         model = FlatBuilding
@@ -56,6 +59,7 @@ class FlatBuildingSerializer(serializers.ModelSerializer):
 
 class PaymentSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    owned_fields = ("tenant", "rent_charge")
 
     class Meta:
         model = Payment
@@ -70,24 +74,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             if 'rent_charge' in self.fields:
                 self.fields['rent_charge'].queryset = RentCharge.objects.filter(user=request.user)
             
-class RegisterAdminSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = User
-        fields = ['username', 'password', 'email', 'first_name', 'last_name']
-
-    def create(self, validated_data):
-        user = User(
-            username=validated_data['username'],
-            email=validated_data.get('email', ''),
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', '')
-        )
-        user.set_password(validated_data['password'])
-        user.is_staff = True
-        user.save()
-        return user
+    
 
 class ForgotPasswordSerializer(serializers.Serializer):
     username = serializers.CharField()
@@ -149,3 +136,34 @@ class RentChargeSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and 'tenant' in self.fields:
             self.fields['tenant'].queryset = Tenant.objects.filter(user=request.user)
+
+
+class OwnedRelationsMixin:
+    """
+    Rejects foreign keys that belong to another landlord (cross-account writes).
+    Set `owned_fields` on each serializer.
+    """
+    owned_fields = ()
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            for name in self.owned_fields:
+                obj = attrs.get(name)
+                if obj is not None and obj.user_id != request.user.id:
+                    raise serializers.ValidationError({name: "Invalid selection."})
+        return attrs
+
+
+class RentChargeSerializer(OwnedRelationsMixin, serializers.ModelSerializer):
+    balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    is_paid = serializers.BooleanField(read_only=True)
+    owned_fields = ("tenant",)
+
+    class Meta:
+        model = RentCharge
+        fields = ["id", "tenant", "year", "month", "amount_due",
+                  "reminder_sent", "balance", "is_paid"]
+        read_only_fields = ["reminder_sent"]
+        extra_kwargs = {"amount_due": {"required": False}}   # defaults to the house rent

@@ -1,6 +1,15 @@
+from calendar import month
+
 from locust import HttpUser, task, between, SequentialTaskSet
 import random
 from datetime import datetime
+import uuid 
+
+# on_start(): collision-proof usernames
+username = f"testuser_{uuid.uuid4().hex[:12]}"
+
+# create_rent_charge(): drop the unnecessary fields; the server sets the owner
+
 
 
 class AuthenticatedTaskSet(SequentialTaskSet):

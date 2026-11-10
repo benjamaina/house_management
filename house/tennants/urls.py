@@ -14,7 +14,8 @@ from tennants.views.web import (dashboard, BuildingListViewWeb, BuildingDetailVi
 from tennants.views.api import (TenantListView, TenantDetailView,
                     HouseListView, HouseDetailView,
                     FlatBuildingListView, FlatBuildingDetailView,PaymentListView, RentChargeListView, RentChargeDetailView)
-from tennants.views.auth import AdminLogoutView, user_login, RegisterUserView, AdminLogoutView, user_login
+from tennants.views.auth import AdminLogoutView, user_login, AdminLogoutView, user_login
+from tennants.views import reconcile
 
 
 urlpatterns = [
@@ -37,7 +38,6 @@ urlpatterns = [
     
     # Authentication
     path('api/admin/logout/', AdminLogoutView.as_view(), name='admin_logout'),
-    path('api/register/', RegisterUserView.as_view(), name='register_api'),
     path('api/login/', user_login, name='user_login'),
 
     # ===========================
@@ -81,6 +81,16 @@ urlpatterns = [
 
     # notifications
     path('send-rent-reminders/', send_rent_reminders, name='send_rent_reminders'),
+    
+
+    path("statements/", reconcile.statement_list, name="statement_list"),
+    path("statements/upload/", reconcile.statement_upload, name="statement_upload"),
+    path("statements/review/", reconcile.review_queue, name="review_queue"),
+    path("statements/review/<int:pk>/assign/", reconcile.assign_transaction, name="assign_transaction"),
+    path("statements/review/<int:pk>/ignore/", reconcile.ignore_transaction, name="ignore_transaction"),
+    path("statements/rematch/", reconcile.rematch, name="rematch"),
+    path("statements/settings/", reconcile.reconcile_settings, name="reconcile_settings"),
+    path("hooks/inbound-email/", reconcile.inbound_email_webhook, name="inbound_email_webhook"),
 ]
 
 # urlpatterns = [

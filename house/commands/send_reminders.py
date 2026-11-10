@@ -1,17 +1,15 @@
 from django.core.management.base import BaseCommand
-from django.utils.timezone import now
-from house_management.models import Tennant, RentPayment
-from house_management.utils import send_sms_notification
+
+from tennants.services.tasks import send_daily_rent_reminders, send_overdue_notices
+
 
 class Command(BaseCommand):
-    help = "Send rent payment reminders to tenants"
+    help = "Send rent reminders (and optionally overdue notices) via SMS"
 
-    def handle(self, *args, **kwargs):
-        tenants = Tennant.objects.filter(is_active=True)
+    def add_arguments(self, parser):
+        parser.add_argument("--overdue", action="store_true", help="Also send overdue notices")
 
-        for tenant in tenants:
-            last_payment = RentPayment.objects.filter(tenant=tenant, is_paid=True).order_by('-date_paid').first()
-            if not last_payment or (now().date() - last_payment.date_paid).days > 30:
-                message = f"Dear {tenant.name}, your rent is due. Please pay to avoid penalties."
-                send_sms_notification(tenant.phone, message)
-                self.stdout.write(self.style.SUCCESS(f"Reminder sent to {tenant.phone}"))
+    def handle(self, *args, **options):
+        self.stdout.write(self.style.SUCCESS(send_daily_rent_reminders()))
+        if options["overdue"]:
+            self.stdout.write(self.style.SUCCESS(send_overdue_notices()))

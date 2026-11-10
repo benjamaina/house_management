@@ -60,7 +60,6 @@ pydantic-extra-types==2.10.5
 pydantic-settings==2.10.1
 pydantic_core==2.33.2
 Pygments==2.19.2
-pygraphviz==1.14
 PyJWT==2.10.1
 pytest==9.0.1
 python-dateutil==2.9.0.post0

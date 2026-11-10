@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
-
+from datetime import timedelta
 
 load_dotenv()
 
@@ -54,11 +54,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = False
 
-# if tab is  losed in the browser the user is logged out
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-SESSION_COOKIE_AGE = 60 * 30  # 30 minutes
-# always ask for authentication after 5 minutes of inactivity
-SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_AGE = 60 * 30        # 30 minutes
+SESSION_SAVE_EVERY_REQUEST = False  
 
 
 
@@ -77,6 +75,7 @@ INSTALLED_APPS = [
     "phonenumber_field",
     "django_filters",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "django_redis",
     "corsheaders",
     "django_extensions",
@@ -168,19 +167,35 @@ REST_FRAMEWORK = {
        'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',  # <- this is what gives you the UI
-    ]
+    ],
+    'DEFAULT_THROTTLE_RATEs': {
+        "auth":os.getenv("AUTH_THROTTLE_RATE", "5/minute"),
+    }
+
 }
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+SMS_ENABLED = os.getenv("SMS_ENABLED", "True") == "True"
 
+TIME_ZONE = "Africa/Nairobi"
+USE_TZ = True
 
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": "redis://127.0.0.1:6379/1",  # 👈 change here
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         }
-#     }
-# }
+if os.getenv("REDIS_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": os.getenv("REDIS_URL"),
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        }
+    }
+else:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+CACHE_TTL = 60 * 5  # shorter now that writes invalidate properly
 
 CACHES = {
     "default": {
@@ -304,3 +319,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Private storage for statements: do NOT add a MEDIA_URL route for this folder
+MEDIA_ROOT = BASE_DIR / "private_media"
+
+# Only needed for the email-forwarding phase (Mailgun shown)
+MAILGUN_SIGNING_KEY = os.getenv("MAILGUN_SIGNING_KEY", "")
+INBOUND_EMAIL_DOMAIN = os.getenv("INBOUND_EMAIL_DOMAIN", "inbound.yourdomain.com")
+
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

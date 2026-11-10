@@ -1,80 +1,60 @@
+import logging
+from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
-from datetime import timedelta
+
 from tennants.models import RentCharge, Tenant
-from .sms import TwilioNotificationService
-import logging
+from .sms import TwilioNotificationService, reminder_candidates
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task
 def send_daily_rent_reminders():
-    """
-    Daily task to check and send rent reminders
-    Runs every day to check for upcoming rent due dates
-    """
-    notification_service = TwilioNotificationService()
-    today = timezone.now().date()
-    sent_count = 0
-    
-    # Get all active tenants
-    active_tenants = Tenant.objects.filter(is_active=True, sms_notifications_enabled=True)
-    
-    for tenant in active_tenants:
-        days_until_due = (tenant.rent_due_date - today).days
-        
-        # Check if reminder should be sent
-        if days_until_due == tenant.reminder_days_before or days_until_due == 0:
-            # Find the current rent charge for this tenant
-            current_month = today.month
-            current_year = today.year
-            
-            try:
-                rent_charge = RentCharge.objects.get(
-                    tenant=tenant,
-                    year=current_year,
-                    month=current_month
-                )
-                
-                # Only send if not already sent
-                if not rent_charge.reminder_sent:
-                    success, result = notification_service.send_rent_due_reminder(rent_charge)
-                    if success:
-                        sent_count += 1
-                        logger.info(f"Reminder sent to {tenant.full_name}")
-                    
-            except RentCharge.DoesNotExist:
-                logger.warning(f"No rent charge found for {tenant.full_name} for {current_month}/{current_year}")
-    
-    logger.info(f"Daily rent reminders completed. Sent: {sent_count}")
-    return f"Sent {sent_count} reminders"
+    service = TwilioNotificationService()
+    tenants = Tenant.objects.filter(is_active=True, sms_notifications=True, house__isnull=False)
+
+    sent = 0
+    for tenant, charge, days in reminder_candidates(tenants):
+        success, result = service.send_rent_due_reminder(charge)
+        if success:
+            sent += 1
+        else:
+            logger.warning("Reminder to %s failed: %s", tenant.full_name, result)
+
+    logger.info("Daily rent reminders completed. Sent: %s", sent)
+    return f"Sent {sent} reminders"
 
 
 @shared_task
 def send_overdue_notices():
-    """
-    Check for overdue rent and send notices
-    Run this weekly or as needed
-    """
-    notification_service = TwilioNotificationService()
-    today = timezone.now().date()
-    sent_count = 0
-    
-    # Get rent charges that are overdue and unpaid
-    overdue_charges = RentCharge.objects.filter(
-        tenant__is_active=True,
-        tenant__sms_notifications_enabled=True,
-        tenant__rent_due_date__lt=today
-    ).exclude(
-        balance__lte=0  # Exclude fully paid
+    service = TwilioNotificationService()
+    now = timezone.now()
+    today = timezone.localdate()
+    notified = set()   # one notice per tenant per run
+    sent = 0
+
+    charges = (
+        RentCharge.objects.filter(tenant__is_active=True, tenant__sms_notifications=True)
+        .select_related("tenant__house__flat_building")
+        .order_by("year", "month")
     )
-    
-    for rent_charge in overdue_charges:
-        # Send overdue notice
-        success, result = notification_service.send_overdue_notice(rent_charge)
+    for charge in charges:
+        tenant = charge.tenant
+        if tenant.pk in notified:
+            continue
+        if tenant.due_date_for(charge.year, charge.month) >= today:
+            continue
+        if charge.balance <= 0:            # balance is a Python property, so check it here
+            continue
+        if tenant.last_notification_sent and (now - tenant.last_notification_sent) < timedelta(days=7):
+            continue
+
+        success, _ = service.send_overdue_notice(charge)
+        notified.add(tenant.pk)
         if success:
-            sent_count += 1
-            logger.info(f"Overdue notice sent to {rent_charge.tenant.full_name}")
-    
-    logger.info(f"Overdue notices completed. Sent: {sent_count}")
-    return f"Sent {sent_count} overdue notices"
+            sent += 1
+
+    logger.info("Overdue notices completed. Sent: %s", sent)
+    return f"Sent {sent} overdue notices"

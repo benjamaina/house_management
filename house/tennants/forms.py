@@ -1,5 +1,5 @@
 from django import forms
-from .models import House, Payment, Tenant, FlatBuilding, RentCharge
+from .models import House, Payment, Tenant, FlatBuilding, RentCharge, LandlordProfile
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 
@@ -42,3 +42,8 @@ class RentChargeForm(forms.ModelForm):
         fields = '__all__'
 
 # Additional forms can be added here as needed
+
+class LandlordProfileForm(forms.ModelForm):
+    class Meta:
+        model = LandlordProfile
+        fields = ["phone", "notify_sms", "auto_approve_email"]

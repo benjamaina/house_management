@@ -49,3 +49,8 @@ coverage.xml
 .env
 house/.env
 .env
+.FETCH_HEAD
+.main
+.python3.14
+.python3.14-config
+.x86_64-linux-gnu-python3.14-config

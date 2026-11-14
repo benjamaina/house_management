@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Reconciliation History - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>Reconciliation</span></div>
+<div class="page-header"><div><p class="stat-label">Bank statement matching</p><h1 class="page-title">Reconciliation <span>History</span></h1></div></div>
+
+<section class="stats-grid" aria-label="Reconciliation totals">
+    <div class="stat-card"><div class="stat-value">{{ matched_count|intcomma }}</div><div class="stat-label">Matched</div></div>
+    <div class="stat-card"><div class="stat-value">{{ unmatched_count|intcomma }}</div><div class="stat-label">Unmatched</div></div>
+</section>
+
+<section class="card" aria-labelledby="reconciliation-list-title">
+    <div class="card-header"><h2 class="card-title" id="reconciliation-list-title">Bank transactions</h2></div>
+    {% if page_obj.object_list %}
+    <div class="table-container"><table>
+        <thead><tr><th scope="col">Bank transaction</th><th scope="col">Amount</th><th scope="col">Matched payment</th><th scope="col">Status</th></tr></thead>
+        <tbody>{% for row in page_obj.object_list %}<tr>
+            <td>{{ row.bank_transaction }}</td>
+            <td>KES {{ row.amount|floatformat:0|intcomma }}</td>
+            <td>{% if row.payment %}<a href="{% url 'payment_detail' row.payment.pk %}">{{ row.payment }}</a>{% else %}—{% endif %}</td>
+            <td>{% if row.status == "matched" %}<span class="badge badge-success">Matched</span>{% else %}<span class="badge badge-warning">{{ row.status|title }}</span>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+    {% else %}<div class="empty-state"><h3>No bank transactions found</h3><p>Imported transactions and their matching status will appear here.</p></div>{% endif %}
+</section>
+{% endblock %}

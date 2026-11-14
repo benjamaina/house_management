@@ -1,0 +1,5 @@
+<article class="card" aria-label="House {{ house.house_number }}">
+    <div class="card-header"><div><h3 class="card-title"><a href="{% url 'house_detail' house.pk %}">{{ house.house_number }}</a></h3><p style="color:var(--text-muted);font-size:.85rem;">{{ house.house_size }}</p></div>{% if house.occupation %}<span class="badge badge-success">Occupied</span>{% else %}<span class="badge">Vacant</span>{% endif %}</div>
+    <dl style="display:grid;grid-template-columns:1fr auto;gap:.5rem;color:var(--text-secondary);font-size:.88rem;"><dt>Monthly rent</dt><dd>KES {{ house.house_rent_amount|floatformat:0|intcomma }}</dd><dt>Deposit</dt><dd>KES {{ house.deposit_amount|floatformat:0|intcomma }}</dd></dl>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-top:1rem;padding-top:.85rem;border-top:1px solid var(--border);">{% if tenant %}<a href="{% url 'tenant_detail' tenant.pk %}">{{ tenant.full_name }}</a>{% else %}<span style="color:var(--text-muted);">Vacant</span><a class="btn btn-secondary btn-sm" href="{% url 'tenant_add' %}">Add tenant</a>{% endif %}</div>
+</article>

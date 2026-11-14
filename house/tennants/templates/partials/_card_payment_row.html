@@ -1,0 +1,7 @@
+<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;padding:.85rem 0;border-bottom:1px solid var(--border);">
+    <div style="display:flex;align-items:center;gap:.75rem;min-width:0;">
+        <span aria-hidden="true" style="width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--border);border-radius:10px;background:var(--dark-elevated);color:var(--primary);">{% if payment.payment_method == "mobile_money" %}◈{% elif payment.payment_method == "bank_transfer" %}▤{% elif payment.payment_method == "cheque" %}▧{% else %}¤{% endif %}</span>
+        <div><a href="{% url 'payment_detail' payment.pk %}">{{ payment.tenant.full_name }}</a><p style="color:var(--text-muted);font-size:.8rem;">{{ payment.paid_at|date:"d M Y" }} · {{ payment.get_payment_method_display }}</p></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.75rem;"><strong style="color:var(--text);font-family:'JetBrains Mono',monospace;">KES {{ payment.amount|floatformat:0|intcomma }}</strong>{% if reconciled %}<span class="badge badge-success">Reconciled</span>{% else %}<span class="badge badge-warning">Unreconciled</span>{% endif %}</div>
+</div>

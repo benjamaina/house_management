@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}SMS History - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><span>SMS history</span></div>
+<div class="page-header"><div><p class="stat-label">Tenant communications</p><h1 class="page-title">SMS <span>History</span></h1></div><span class="badge {% if sms_enabled %}badge-success{% else %}badge-warning{% endif %}">{% if sms_enabled %}SMS enabled{% else %}SMS disabled{% endif %}</span></div>
+
+<section class="stats-grid" aria-label="SMS totals">
+    <div class="stat-card"><div class="stat-value">{{ counts.sent|intcomma }}</div><div class="stat-label">Sent</div></div>
+    <div class="stat-card"><div class="stat-value">{{ counts.failed|intcomma }}</div><div class="stat-label">Failed</div></div>
+</section>
+
+<section class="card" aria-labelledby="sms-list-title">
+    <div class="card-header"><h2 class="card-title" id="sms-list-title">Message log</h2></div>
+    {% if page_obj.object_list %}
+    <div class="table-container"><table>
+        <thead><tr><th scope="col">Tenant</th><th scope="col">Phone</th><th scope="col">Message</th><th scope="col">Status</th><th scope="col">Sent at</th></tr></thead>
+        <tbody>{% for sms in page_obj.object_list %}<tr>
+            <td>{{ sms.tenant }}</td><td>{{ sms.phone }}</td><td>{{ sms.message }}</td>
+            <td>{% if sms.status == "sent" %}<span class="badge badge-success">Sent</span>{% else %}<span class="badge badge-danger">{{ sms.status|title }}</span>{% endif %}</td>
+            <td>{{ sms.sent_at|date:"d M Y" }}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+    {% else %}<div class="empty-state"><h3>No SMS messages recorded</h3><p>Reminder and notification messages will appear here.</p></div>{% endif %}
+</section>
+{% endblock %}

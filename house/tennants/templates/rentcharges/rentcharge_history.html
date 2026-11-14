@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Rent Collection History - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><a href="{% url 'rent_charge_list' %}">Rent charges</a><span>/</span><span>History</span></div>
+<div class="page-header"><div><p class="stat-label">Portfolio collections</p><h1 class="page-title">Rent <span>History</span></h1></div><a class="btn btn-primary" href="{% url 'rent_charge_add' %}">+ Create charge</a></div>
+
+<section class="card">
+    <form method="get" class="filter-bar">
+        <label class="form-label" for="rent-year">Reporting year</label>
+        <select class="form-control" id="rent-year" name="year" onchange="this.form.submit()">
+            {% for available_year in years %}<option value="{{ available_year }}" {% if available_year == year %}selected{% endif %}>{{ available_year }}</option>{% endfor %}
+        </select>
+    </form>
+</section>
+
+<section class="card" aria-labelledby="monthly-summary-title">
+    <div class="card-header"><h2 class="card-title" id="monthly-summary-title">{{ year }} collection calendar</h2><span class="badge badge-info">12-month view</span></div>
+    {% if month_summaries %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem;">
+        {% for month in month_summaries %}
+        <article style="padding:1rem;background:color-mix(in srgb,var(--success) {{ month.collection_rate|floatformat:0 }}%,var(--dark-elevated));border:1px solid var(--border);border-radius:14px;min-width:0;">
+            <h3 style="color:var(--text);margin-bottom:.75rem;">{{ month.month }}</h3>
+            <dl style="display:grid;grid-template-columns:1fr auto;gap:.35rem .75rem;color:var(--text-secondary);font-size:.88rem;">
+                <dt>Charged</dt><dd>KES {{ month.charged|floatformat:0|intcomma }}</dd>
+                <dt>Collected</dt><dd>KES {{ month.collected|floatformat:0|intcomma }}</dd>
+                <dt>Outstanding</dt><dd>KES {{ month.outstanding|floatformat:0|intcomma }}</dd>
+            </dl>
+            <div style="display:flex;align-items:center;gap:.65rem;margin-top:.85rem;">
+                <div style="height:6px;flex:1;background:var(--dark-card);border-radius:10px;overflow:hidden;"><div style="height:100%;width:{{ month.collection_rate }}%;background:var(--success);border-radius:10px;"></div></div>
+                <strong style="color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.85rem;">{{ month.collection_rate|floatformat:0 }}%</strong>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}<div class="empty-state"><h3>No charges for {{ year }}</h3><p>Monthly summaries will appear after charges are created.</p></div>{% endif %}
+</section>
+
+<section class="card" aria-labelledby="charge-history-title">
+    <div class="card-header"><h2 class="card-title" id="charge-history-title">Charge records</h2></div>
+    {% if page_obj.object_list %}
+    <div class="table-container"><table>
+        <thead><tr><th scope="col">Tenant</th><th scope="col">Period</th><th scope="col">Charged</th><th scope="col">Collected</th><th scope="col">Outstanding</th><th scope="col">Status</th></tr></thead>
+        <tbody>{% for charge in page_obj.object_list %}<tr>
+            <td><a href="{% url 'tenant_detail' charge.tenant.pk %}">{{ charge.tenant.full_name }}</a></td>
+            <td>{{ charge.get_month_display }} {{ charge.year }}</td>
+            <td>KES {{ charge.amount_due|floatformat:0|intcomma }}</td>
+            <td>KES {{ charge.total_paid|floatformat:0|intcomma }}</td>
+            <td>KES {{ charge.balance|floatformat:0|intcomma }}</td>
+            <td>{% if charge.is_paid %}<span class="badge badge-success">Paid</span>{% elif charge.total_paid %}<span class="badge badge-warning">Partial</span>{% else %}<span class="badge badge-danger">Outstanding</span>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+    {% else %}<div class="empty-state"><h3>No rent charges yet</h3><p>Monthly rent obligations will appear here.</p></div>{% endif %}
+</section>
+{% endblock %}

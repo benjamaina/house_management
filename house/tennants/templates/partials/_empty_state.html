@@ -1,0 +1,6 @@
+<div class="empty-state">
+    <div class="empty-state-icon" aria-hidden="true">{{ icon|default:"⌂" }}</div>
+    <h3>{{ title }}</h3>
+    <p>{{ description }}</p>
+    {% if action_url and action_label %}<a class="btn btn-primary" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+</div>

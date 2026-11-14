@@ -1,0 +1,10 @@
+<article class="card" aria-label="Balance for {{ tenant.full_name }}">
+    <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;">
+        <div><h3 class="card-title"><a href="{% url 'tenant_detail' tenant.pk %}">{{ tenant.full_name }}</a></h3><p style="color:var(--text-muted);font-size:.85rem;margin-top:.25rem;">{% if tenant.house %}{{ tenant.house.house_number }}{% else %}No house assigned{% endif %}</p></div>
+        <div style="text-align:right;"><div class="detail-label">Balance</div><strong style="color:{% if balance > 0 %}var(--danger){% else %}var(--success){% endif %};font-family:'JetBrains Mono',monospace;">KES {{ balance|floatformat:0|intcomma }}</strong></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--text-secondary);font-size:.85rem;">
+        <span>{% if due_days < 0 %}{{ due_days|stringformat:"s"|slice:"1:" }} days overdue{% elif due_days == 0 %}Due today{% else %}Due in {{ due_days }} days{% endif %}</span>
+        <span>Last payment: {% if last_payment_date %}{{ last_payment_date|date:"d M Y" }}{% else %}No payments{% endif %}</span>
+    </div>
+</article>

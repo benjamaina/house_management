@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Payment History - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><a href="{% url 'payment_list' %}">Payments</a><span>/</span><span>History</span></div>
+<div class="page-header"><div><p class="stat-label">Collections</p><h1 class="page-title">Payment <span>History</span></h1></div><a class="btn btn-primary" href="{% url 'payment_add' %}">+ Record payment</a></div>
+
+<section class="card" aria-label="Filter payment history">
+    <form method="get" class="filter-bar">
+        <div class="form-group" style="margin:0;min-width:180px"><label class="form-label" for="id_tenant">Tenant</label>{{ filter_form.tenant }}</div>
+        <div class="form-group" style="margin:0;min-width:160px"><label class="form-label" for="id_method">Method</label>{{ filter_form.method }}</div>
+        <div class="form-group" style="margin:0;min-width:150px"><label class="form-label" for="id_date_from">From</label>{{ filter_form.date_from }}</div>
+        <div class="form-group" style="margin:0;min-width:150px"><label class="form-label" for="id_date_to">To</label>{{ filter_form.date_to }}</div>
+        <button class="btn btn-secondary" type="submit">Apply filters</button>
+    </form>
+</section>
+
+<section class="stats-grid" aria-label="Payment totals">
+    <div class="stat-card"><div class="stat-value">{{ totals.count|intcomma }}</div><div class="stat-label">Payments</div></div>
+    <div class="stat-card"><div class="stat-value">KES {{ totals.amount|floatformat:0|intcomma }}</div><div class="stat-label">Total collected</div></div>
+    {% for method in by_method %}<div class="stat-card"><div class="stat-value">KES {{ method.total|floatformat:0|intcomma }}</div><div class="stat-label">{{ method.method }}</div></div>{% endfor %}
+</section>
+
+<section class="card" aria-labelledby="history-title">
+    <div class="card-header"><h2 class="card-title" id="history-title">Payments by month</h2></div>
+    {% if page_obj.object_list %}
+    {% regroup page_obj.object_list by paid_at|date:"F Y" as month_groups %}
+    {% for group in month_groups %}
+    <h3 style="color:var(--text);font-size:1rem;margin:1.25rem 0 .75rem;">{{ group.grouper }}</h3>
+    <div class="table-container"><table>
+        <thead><tr><th scope="col">Tenant</th><th scope="col">Rent period</th><th scope="col">Method</th><th scope="col">Reference</th><th scope="col">Paid at</th><th scope="col">Amount</th><th scope="col">Reconciliation</th></tr></thead>
+        <tbody>{% for payment in group.list %}
+        <tr>
+            <td><a href="{% url 'tenant_detail' payment.tenant.pk %}">{{ payment.tenant.full_name }}</a></td>
+            <td>{{ payment.rent_charge.get_month_display }} {{ payment.rent_charge.year }}</td>
+            <td>{{ payment.get_payment_method_display }}</td>
+            <td>{{ payment.payment_reference|default:"—" }}</td>
+            <td>{{ payment.paid_at|date:"d M Y" }}</td>
+            <td>KES {{ payment.amount|floatformat:0|intcomma }}</td>
+            <td>{# TODO: expose payment reconciliation state in the payment rows. #}{% if payment.reconciled %}<span class="badge badge-success">Reconciled</span>{% else %}<span class="badge badge-warning">Unreconciled</span>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+    {% endfor %}
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+    {% else %}
+    <div class="empty-state"><h3>No payments match these filters</h3><p>Try another date range or record a payment.</p><a class="btn btn-primary" href="{% url 'payment_add' %}">+ Record payment</a></div>
+    {% endif %}
+</section>
+{% endblock %}

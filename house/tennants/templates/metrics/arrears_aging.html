@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Arrears Aging - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><a href="{% url 'metrics_overview' %}">Metrics</a><span>/</span><span>Arrears aging</span></div>
+<div class="page-header"><div><p class="stat-label">Outstanding balances</p><h1 class="page-title">Arrears <span>aging</span></h1></div></div>
+
+<section class="card" aria-labelledby="aging-title">
+    <div class="card-header"><h2 class="card-title" id="aging-title">Balance age distribution</h2></div>
+    {% if buckets %}
+    <div style="height:22px;display:flex;overflow:hidden;border-radius:999px;background:var(--dark-elevated;" aria-label="Arrears distributed by age">
+        {% for bucket in buckets %}<span title="{{ bucket.label }}: KES {{ bucket.amount|floatformat:0|intcomma }}" style="flex:{{ bucket.amount }} 1 0;background:{% if bucket.label == '0-30' %}var(--primary){% elif bucket.label == '31-60' %}var(--blue){% elif bucket.label == '61-90' %}var(--secondary){% else %}var(--danger){% endif %};min-width:3px;"></span>{% endfor %}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem;margin-top:1rem;">
+        {% for bucket in buckets %}<div class="detail-item"><div style="display:flex;align-items:center;gap:.5rem;"><span style="width:9px;height:9px;border-radius:50%;background:{% if bucket.label == '0-30' %}var(--primary){% elif bucket.label == '31-60' %}var(--blue){% elif bucket.label == '61-90' %}var(--secondary){% else %}var(--danger){% endif %};"></span><span class="detail-label" style="margin:0;">{{ bucket.label }} days</span></div><div class="detail-value" style="margin-top:.55rem;">KES {{ bucket.amount|floatformat:0|intcomma }}</div><div style="color:var(--text-muted);font-size:.8rem;">{{ bucket.tenant_count|intcomma }} tenants</div></div>{% endfor %}
+    </div>
+    {% else %}<div class="empty-state"><h3>No arrears to age</h3><p>There are no outstanding balances in this period.</p></div>{% endif %}
+</section>
+
+<section class="card" aria-labelledby="aging-table-title">
+    <div class="card-header"><h2 class="card-title" id="aging-table-title">Tenant balances</h2></div>
+    {% if rows %}<div class="table-container"><table>
+        <thead><tr><th scope="col">Tenant</th><th scope="col">House</th><th scope="col">Age</th><th scope="col">Balance</th></tr></thead>
+        <tbody>{% for row in rows %}<tr><td>{{ row.tenant }}</td><td>{{ row.house|default:"—" }}</td><td><span class="badge badge-warning">{{ row.bucket }}</span></td><td style="color:var(--danger);font-weight:600;">KES {{ row.amount|floatformat:0|intcomma }}</td></tr>{% endfor %}</tbody>
+    </table></div>{% else %}<div class="empty-state"><h3>No tenant balances</h3><p>When rent becomes overdue, it will appear here.</p></div>{% endif %}
+</section>
+{% endblock %}

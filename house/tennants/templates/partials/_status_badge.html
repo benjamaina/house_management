@@ -1,0 +1,8 @@
+{% if status == "paid" %}<span class="badge badge-success">Paid</span>
+{% elif status == "partial" %}<span class="badge badge-warning">Partial</span>
+{% elif status == "overdue" %}<span class="badge badge-danger">Overdue</span>
+{% elif status == "vacant" %}<span class="badge">Vacant</span>
+{% elif status == "occupied" %}<span class="badge badge-success">Occupied</span>
+{% elif status == "active" %}<span class="badge badge-success">Active</span>
+{% elif status == "inactive" %}<span class="badge badge-warning">Inactive</span>
+{% else %}<span class="badge badge-info">{{ status|title }}</span>{% endif %}

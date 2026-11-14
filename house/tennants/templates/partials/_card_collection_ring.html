@@ -1,0 +1,11 @@
+<article class="card" aria-label="Rent collection this month">
+    <div class="card-header"><h3 class="card-title">Collected this month</h3></div>
+    <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
+        <svg viewBox="0 0 120 120" role="img" aria-label="{{ percentage|floatformat:0 }} percent collected" style="width:120px;height:120px;flex:0 0 120px;">
+            <circle cx="60" cy="60" r="48" fill="none" stroke="var(--dark-elevated)" stroke-width="10" />
+            <circle cx="60" cy="60" r="48" fill="none" stroke="var(--success)" stroke-width="10" stroke-linecap="round" stroke-dasharray="{{ ring_dasharray }} 302" transform="rotate(-90 60 60)" />
+            <text x="60" y="65" text-anchor="middle" fill="var(--text)" font-size="22" font-family="'JetBrains Mono',monospace">{{ percentage|floatformat:0 }}%</text>
+        </svg>
+        <div><p style="color:var(--text-muted);font-size:.8rem;">Collected</p><strong style="color:var(--text);">KES {{ collected|floatformat:0|intcomma }}</strong><p style="color:var(--text-muted);font-size:.8rem;margin-top:.65rem;">Of KES {{ charged|floatformat:0|intcomma }} charged</p></div>
+    </div>
+</article>

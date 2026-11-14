@@ -1,0 +1,6 @@
+<article class="stat-card">
+    <div class="stat-label">{{ label }}</div>
+    <div class="stat-value">{{ value }}</div>
+    {% if trend %}<p style="color:var(--text-secondary);font-size:.82rem;">{{ trend }}</p>{% endif %}
+    {% if sparkline %}<div role="img" aria-label="Trend chart" style="height:32px;display:flex;align-items:end;gap:3px;margin-top:.65rem;">{% for point in sparkline %}<span style="flex:1;min-width:2px;height:{{ point }}%;max-height:100%;background:var(--blue);border-radius:3px 3px 0 0;"></span>{% endfor %}</div>{# TODO: pass sparkline points normalized from 0 to 100 for bar heights. #}{% endif %}
+</article>

@@ -1,0 +1,11 @@
+<section class="card" aria-label="Arrears by age">
+    <div class="card-header"><h3 class="card-title">Arrears by age</h3><a class="btn btn-secondary btn-sm" href="{% url 'metrics_arrears_aging' %}">Details</a></div>
+    {% if buckets %}
+    <div style="height:16px;display:flex;overflow:hidden;border-radius:999px;background:var(--dark-elevated);">
+        {% for bucket in buckets %}<span title="{{ bucket.label }} days: KES {{ bucket.amount|floatformat:0|intcomma }}" style="flex:{{ bucket.amount }} 1 0;min-width:3px;background:{% if bucket.label == '0-30' %}var(--primary){% elif bucket.label == '31-60' %}var(--blue){% elif bucket.label == '61-90' %}var(--secondary){% else %}var(--danger){% endif %};"></span>{% endfor %}
+    </div>
+    <ul style="list-style:none;display:grid;gap:.65rem;margin-top:1rem;">
+        {% for bucket in buckets %}<li style="display:flex;justify-content:space-between;gap:1rem;color:var(--text-secondary);font-size:.88rem;"><span>{{ bucket.label }} days · {{ bucket.tenant_count }} tenants</span><strong style="color:var(--text);">KES {{ bucket.amount|floatformat:0|intcomma }}</strong></li>{% endfor %}
+    </ul>
+    {% else %}<div class="empty-state"><h3>No arrears recorded</h3><p>Balances will be grouped here by age.</p></div>{% endif %}
+</section>

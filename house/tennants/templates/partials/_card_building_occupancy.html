@@ -1,0 +1,7 @@
+<article class="card" aria-label="Occupancy for {{ building_name }}">
+    <div class="card-header"><div><h3 class="card-title">{{ building_name }}</h3><p style="color:var(--text-muted);font-size:.85rem;">{{ occupied_count }} / {{ total_count }} occupied</p></div><span class="badge badge-info">{{ rate|floatformat:0 }}%</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;">
+        {% for house in houses %}<a href="{% url 'house_detail' house.pk %}" aria-label="House {{ house.house_number }} — {% if house.occupation %}occupied{% else %}vacant{% endif %}" title="{{ house.house_number }}" style="display:block;width:18px;height:18px;border:1px solid {% if house.occupation %}var(--success){% else %}var(--text-muted){% endif %};background:{% if house.occupation %}var(--success){% else %}transparent{% endif %};border-radius:4px;"></a>{% endfor %}
+    </div>
+    <div style="height:5px;background:var(--dark-elevated);border-radius:8px;overflow:hidden;"><div style="height:100%;width:{{ rate }}%;background:var(--success);"></div></div>
+</article>

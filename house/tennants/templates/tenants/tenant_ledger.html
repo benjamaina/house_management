@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}{{ tenant.full_name }} Ledger - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{% url 'dashboard' %}">Dashboard</a><span>/</span>
+    <a href="{% url 'tenant_list' %}">Tenants</a><span>/</span>
+    <a href="{% url 'tenant_detail' tenant.pk %}">{{ tenant.full_name }}</a><span>/</span>
+    <span>Ledger</span>
+</div>
+
+<div class="page-header">
+    <div>
+        <p class="stat-label">Tenant ledger</p>
+        <h1 class="page-title">{{ tenant.full_name }}</h1>
+        <p style="color:var(--text-secondary);margin-top:.35rem;">
+            {% if tenant.house %}{{ tenant.house.house_number }}{% else %}No house assigned{% endif %}
+        </p>
+    </div>
+    <div class="detail-item" style="min-width:210px;">
+        <div class="detail-label">Outstanding balance</div>
+        <div class="detail-value" style="color:{% if balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+            KES {{ balance|floatformat:0|intcomma }}
+        </div>
+    </div>
+</div>
+
+<section class="stats-grid" aria-label="Ledger totals">
+    <div class="stat-card"><div class="stat-value">KES {{ total_charged|floatformat:0|intcomma }}</div><div class="stat-label">Total charged</div></div>
+    <div class="stat-card"><div class="stat-value">KES {{ total_paid|floatformat:0|intcomma }}</div><div class="stat-label">Total paid</div></div>
+    <div class="stat-card"><div class="stat-value">KES {{ balance|floatformat:0|intcomma }}</div><div class="stat-label">Current balance</div></div>
+</section>
+
+<section class="card" aria-labelledby="ledger-title">
+    <div class="card-header"><h2 class="card-title" id="ledger-title">Account activity</h2></div>
+    {% if ledger_rows %}
+    <div class="table-container">
+        <table>
+            <thead><tr>
+                <th scope="col">Date</th><th scope="col">Activity</th><th scope="col">Description</th>
+                <th scope="col">Charge</th><th scope="col">Payment</th><th scope="col">Balance</th>
+            </tr></thead>
+            <tbody>
+                {% for row in ledger_rows %}
+                <tr>
+                    <td>{{ row.date|date:"d M Y" }}</td>
+                    <td>{% if row.kind == "charge" %}<span class="badge badge-warning">Charge</span>{% else %}<span class="badge badge-success">Payment</span>{% endif %}</td>
+                    <td>{{ row.description }}</td>
+                    <td>{% if row.debit %}KES {{ row.debit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                    <td>{% if row.credit %}KES {{ row.credit|floatformat:0|intcomma }}{% else %}—{% endif %}</td>
+                    <td style="font-family:'JetBrains Mono',monospace;">KES {{ row.running_balance|floatformat:0|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state"><h3>No account activity yet</h3><p>Charges and payments will appear here.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

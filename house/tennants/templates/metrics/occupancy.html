@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Occupancy - RentFlow{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a><span>/</span><a href="{% url 'metrics_overview' %}">Metrics</a><span>/</span><span>Occupancy</span></div>
+<div class="page-header"><div><p class="stat-label">Homes across your portfolio</p><h1 class="page-title">Unit <span>occupancy</span></h1></div><a class="btn btn-secondary" href="{% url 'building_list' %}">View buildings</a></div>
+
+{% if buildings %}
+    {% for item in buildings %}
+    <section class="card" aria-labelledby="building-{{ forloop.counter }}">
+        <div class="card-header"><div><h2 class="card-title" id="building-{{ forloop.counter }}">{{ item.building }}</h2><p style="color:var(--text-muted);font-size:.85rem;margin-top:.25rem;">{{ item.occupied }} occupied · {{ item.vacant }} vacant · {{ item.rate|floatformat:0 }}%</p></div><span class="badge badge-info">{{ item.total }} units</span></div>
+        <div style="height:6px;background:var(--dark-elevated);border-radius:8px;margin-bottom:1rem;overflow:hidden;"><div style="height:100%;width:{{ item.rate }}%;background:var(--success);border-radius:8px;"></div></div>
+        {% if item.houses %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.65rem;">
+            {% for house in item.houses %}
+            <article style="background:var(--dark-elevated);border:1px solid var(--border);border-left:3px solid {% if house.occupied %}var(--success){% else %}var(--text-muted){% endif %};border-radius:10px;padding:.8rem;min-width:0;">
+                <div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center;"><strong style="color:var(--text);">{{ house.number }}</strong>{% if house.occupied %}<span class="badge badge-success">Occupied</span>{% else %}<span class="badge">Vacant</span>{% endif %}</div>
+                <p style="color:var(--text-secondary);font-size:.82rem;margin-top:.5rem;">{% if house.tenant %}{{ house.tenant }}{% else %}No tenant{% endif %}</p>
+                <p style="color:var(--text-muted);font-size:.8rem;">KES {{ house.rent|floatformat:0|intcomma }} / month</p>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}<p style="color:var(--text-muted);">No units are listed for this building.</p>{% endif %}
+    </section>
+    {% endfor %}
+{% else %}<section class="card"><div class="empty-state"><h3>No buildings to display</h3><p>Add a building to see your occupancy overview.</p><a class="btn btn-primary" href="{% url 'building_add' %}">+ Add building</a></div></section>{% endif %}
+{% endblock %}

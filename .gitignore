@@ -1,56 +1,59 @@
 # Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+web-venv/
 
-# Django
+# Django and local data
 db.sqlite3
+db.sqlite3-journal
 *.log
 media/
-nginx/
+**/staticfiles/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
 *.key
 *.crt
 *.pem
 *.cer
 *.csr
 
-# Virtual Environments
-venv/
-env/
-web-venv/
-*.env
-*.env
-house/.env
-
-# IDEs and editors
-*.vscode/
-*.idea/
-*.DS_Store
-
-# Frontend - Node / React / Next.js
-frontend/node_modules/
-frontend/.next/
-frontend/build/
-frontend/.env.local
-frontend/.env.production
-frontend/.env.development
-
-*.tar
-*.img
-
-htmlcov/
+# Test and tool caches/reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
 coverage.xml
-*.coverage
+htmlcov/
 
-*.json
-*.yaml
-*.yml
+# Frontend dependencies and generated output
+**/node_modules/
+**/.next/
+**/build/
+**/dist/
 
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Temporary files and local session artifacts
+*.swp
+*.swo
+*~
+*.tmp
 *.session.sql
-*.env
-house/.env
-*.env
-*.FETCH_HEAD
-*.main
-*.python3.14
-*.python3.14-config
-*.x86_64-linux-gnu-python3.14-config
+/FETCH_HEAD
+/main
+/python3.14
+/python3.14-config
+/x86_64-linux-gnu-python3.14-config

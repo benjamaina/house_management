@@ -16,6 +16,8 @@
     <div style="display: flex; gap: 0.75rem;">
         <a href="{% url 'tenant_edit' tenant.pk %}" class="btn btn-secondary">Edit Tenant</a>
         <a href="{% url 'payment_add' %}" class="btn btn-primary">+ Record Payment</a>
+        {% url 'tenant_ledger' tenant.pk as ledger_url %}
+{% if ledger_url %}<a href="{{ ledger_url }}" class="btn btn-secondary">📒 Ledger</a>{% endif %}
     </div>
 </div>
 

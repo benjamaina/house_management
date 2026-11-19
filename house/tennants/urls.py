@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.views.generic.base import RedirectView
-from tennants.views.web import (dashboard, BuildingListViewWeb, BuildingDetailViewWeb,
+from tennants.views.web import (dashboard, metrics_overview, BuildingListViewWeb, BuildingDetailViewWeb,
                     BuildingCreateViewWeb, BuildingUpdateViewWeb, BuildingDeleteViewWeb,
                     HouseListViewWeb, HouseDetailViewWeb,
                     HouseCreateViewWeb, HouseUpdateViewWeb, HouseDeleteViewWeb,
@@ -11,7 +11,8 @@ from tennants.views.web import (dashboard, BuildingListViewWeb, BuildingDetailVi
                     PaymentCreateViewWeb, PaymentUpdateViewWeb,
                     RentChargeListViewWeb, RentChargeDetailViewWeb,
                     RentChargeCreateViewWeb, RentChargeUpdateViewWeb,
-                    bulk_create_rent_charges,send_rent_reminders)
+                    bulk_create_rent_charges,send_rent_reminders, metrics_arrears_aging, metrics_occupancy, tenant_ledger, payment_history,
+                    rent_charge_history, sms_history, reconciliation_history)
 
 from tennants.views.api import (TenantListView, TenantDetailView,
                     HouseListView, HouseDetailView,
@@ -71,8 +72,8 @@ urlpatterns = [
     # Payments
     path('payments/', PaymentListViewWeb.as_view(), name='payment_list'),
     path('payments/add/', PaymentCreateViewWeb.as_view(), name='payment_add'),
-    path('payments/<int:pk>/', PaymentListViewWeb.as_view(), name='payment_detail'),
-    path('payments/<int:pk>/edit/', PaymentDetailViewWeb.as_view(), name='payment_edit'),
+    path('payments/<int:pk>/', PaymentDetailViewWeb.as_view(), name='payment_detail'),
+    path('payments/<int:pk>/edit/', PaymentUpdateViewWeb.as_view(), name='payment_edit'),
 
     # Rent Charges
     path('rent-charges/', RentChargeListViewWeb.as_view(), name='rent_charge_list'),
@@ -99,5 +100,13 @@ urlpatterns = [
             url=staticfiles_storage.url("robots.txt"),
             permanent=False
         )
-    )
+    ),
+    path('metrics/', metrics_overview, name='metrics_overview'),
+    path('metrics/arrears/', metrics_arrears_aging, name='metrics_arrears_aging'),
+    path('metrics/occupancy/', metrics_occupancy, name='metrics_occupancy'),
+    path('tenants/<int:pk>/ledger/', tenant_ledger, name='tenant_ledger'),
+    path('payments/history/', payment_history, name='payment_history'),
+    path('rent-charges/history/', rent_charge_history, name='rent_charge_history'),
+    path('sms/history/', sms_history, name='sms_history'),
+    path('statements/history/', reconciliation_history, name='reconciliation_history'),
 ]

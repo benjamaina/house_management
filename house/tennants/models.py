@@ -475,3 +475,31 @@ class PaymentAlias(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["user", "alias"], name="uniq_alias_per_user")]
+
+
+class SMSLog(models.Model):
+    KINDS = [
+        ("rent_reminder", "Rent reminder"),
+        ("payment_confirmation", "Payment confirmation"),
+        ("welcome", "Welcome"),
+        ("overdue", "Overdue notice"),
+        ("summary", "Statement summary"),
+        ("other", "Other"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.PROTECT, null=True, blank=True, db_index=True)
+    tenant = models.ForeignKey(Tenant, on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name="sms_logs")
+    to_number = models.CharField(max_length=20)
+    kind = models.CharField(max_length=24, choices=KINDS, default="other", db_index=True)
+    body = models.TextField()
+    success = models.BooleanField(default=False, db_index=True)
+    provider_id = models.CharField(max_length=64, blank=True)   # Twilio message SID
+    error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} to {self.to_number} ({'sent' if self.success else 'failed'})"

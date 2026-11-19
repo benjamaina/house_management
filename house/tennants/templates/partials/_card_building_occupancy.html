@@ -1,3 +1,4 @@
+{% load humanize %}
 <article class="card" aria-label="Occupancy for {{ building_name }}">
     <div class="card-header"><div><h3 class="card-title">{{ building_name }}</h3><p style="color:var(--text-muted);font-size:.85rem;">{{ occupied_count }} / {{ total_count }} occupied</p></div><span class="badge badge-info">{{ rate|floatformat:0 }}%</span></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;">

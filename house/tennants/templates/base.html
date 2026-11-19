@@ -984,15 +984,18 @@
                 </div>
                 <span class="brand-text">Rent<span>Flow</span></span>
             </a>
-            
-            <ul class="navbar-nav">
-                <li><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a></li>
-                <li><a href="{% url 'building_list' %}" class="nav-link {% if 'building' in request.resolver_match.url_name %}active{% endif %}">Buildings</a></li>
-                <li><a href="{% url 'house_list' %}" class="nav-link {% if 'house' in request.resolver_match.url_name %}active{% endif %}">Houses</a></li>
-                <li><a href="{% url 'tenant_list' %}" class="nav-link {% if 'tenant' in request.resolver_match.url_name %}active{% endif %}">Tenants</a></li>
-                <li><a href="{% url 'rent_charge_list' %}" class="nav-link {% if 'rent_charge' in request.resolver_match.url_name %}active{% endif %}">Charges</a></li>
-                <li><a href="{% url 'payment_list' %}" class="nav-link {% if 'payment' in request.resolver_match.url_name %}active{% endif %}">Payments</a></li>
-            </ul>
+        {% url 'metrics_overview' as metrics_url %}
+        <ul class="navbar-nav">
+            <li><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+            <li><a href="{% url 'building_list' %}" class="nav-link {% if 'building' in request.resolver_match.url_name %}active{% endif %}">Buildings</a></li>
+            <li><a href="{% url 'house_list' %}" class="nav-link {% if 'house' in request.resolver_match.url_name %}active{% endif %}">Houses</a></li>
+            <li><a href="{% url 'tenant_list' %}" class="nav-link {% if 'tenant' in request.resolver_match.url_name %}active{% endif %}">Tenants</a></li>
+            <li><a href="{% url 'rent_charge_list' %}" class="nav-link {% if 'rent_charge' in request.resolver_match.url_name %}active{% endif %}">Charges</a></li>
+            <li><a href="{% url 'payment_list' %}" class="nav-link {% if 'payment' in request.resolver_match.url_name %}active{% endif %}">Payments</a></li>
+            {% if metrics_url %}
+            <li><a href="{{ metrics_url }}" class="nav-link {% if 'metrics' in request.resolver_match.url_name %}active{% endif %}">Metrics</a></li>
+            {% endif %}
+        </ul>
 
             <div class="navbar-user">
                 <!-- Theme Toggle -->

@@ -1,3 +1,4 @@
+{% load humanize %}
 <section class="card" aria-label="Arrears by age">
     <div class="card-header"><h3 class="card-title">Arrears by age</h3><a class="btn btn-secondary btn-sm" href="{% url 'metrics_arrears_aging' %}">Details</a></div>
     {% if buckets %}

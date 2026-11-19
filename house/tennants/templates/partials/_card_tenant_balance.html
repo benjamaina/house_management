@@ -1,3 +1,4 @@
+{% load humanize %}
 <article class="card" aria-label="Balance for {{ tenant.full_name }}">
     <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;">
         <div><h3 class="card-title"><a href="{% url 'tenant_detail' tenant.pk %}">{{ tenant.full_name }}</a></h3><p style="color:var(--text-muted);font-size:.85rem;margin-top:.25rem;">{% if tenant.house %}{{ tenant.house.house_number }}{% else %}No house assigned{% endif %}</p></div>

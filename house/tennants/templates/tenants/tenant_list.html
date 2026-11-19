@@ -112,9 +112,11 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'tenant_detail' tenant.pk %}" class="btn-icon" title="View Details">👁</a>
-                            <a href="{% url 'tenant_edit' tenant.pk %}" class="btn-icon" title="Edit">✏️</a>
-                            <a href="{% url 'tenant_delete' tenant.pk %}" class="btn-icon danger" title="Delete">🗑</a>
+                            <a href="{% url 'tenant_detail' tenant.pk %}" class="btn-icon" title="View Details"></a>
+                            {% url 'tenant_ledger' tenant.pk as ledger_url %}
+{% if ledger_url %}<a href="{{ ledger_url }}" class="btn-icon" title="Ledger">📒</a>{% endif %}
+                            <a href="{% url 'tenant_edit' tenant.pk %}" class="btn-icon" title="Edit"></a>
+                            <a href="{% url 'tenant_delete' tenant.pk %}" class="btn-icon danger" title="Delete"></a>
                         </div>
                     </td>
                 </tr>

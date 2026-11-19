@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     "django_redis",
     "corsheaders",
     "django_extensions",
+    "django.contrib.humanize",
 ]
 
 

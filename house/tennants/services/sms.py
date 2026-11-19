@@ -11,6 +11,7 @@ from twilio.rest import Client
 logger = logging.getLogger(__name__)
 
 
+
 def reminder_candidates(tenants, today=None):
     """
     Return [(tenant, rent_charge, days_until_due)] for unsent reminders whose due

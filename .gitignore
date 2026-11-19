@@ -17,14 +17,14 @@ nginx/
 venv/
 env/
 web-venv/
-.env
-.env
+*.env
+*.env
 house/.env
 
 # IDEs and editors
-.vscode/
-.idea/
-.DS_Store
+*.vscode/
+*.idea/
+*.DS_Store
 
 # Frontend - Node / React / Next.js
 frontend/node_modules/
@@ -39,18 +39,18 @@ frontend/.env.development
 
 htmlcov/
 coverage.xml
-.coverage
+*.coverage
 
 *.json
 *.yaml
 *.yml
 
 *.session.sql
-.env
+*.env
 house/.env
-.env
-.FETCH_HEAD
-.main
-.python3.14
-.python3.14-config
-.x86_64-linux-gnu-python3.14-config
+*.env
+*.FETCH_HEAD
+*.main
+*.python3.14
+*.python3.14-config
+*.x86_64-linux-gnu-python3.14-config

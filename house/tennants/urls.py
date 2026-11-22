@@ -11,12 +11,12 @@ from tennants.views.web import (dashboard, metrics_overview, BuildingListViewWeb
                     PaymentCreateViewWeb, PaymentUpdateViewWeb,
                     RentChargeListViewWeb, RentChargeDetailViewWeb,
                     RentChargeCreateViewWeb, RentChargeUpdateViewWeb,
-                    bulk_create_rent_charges,send_rent_reminders, metrics_arrears_aging, metrics_occupancy, tenant_ledger, payment_history,
-                    rent_charge_history, sms_history, reconciliation_history)
+                    bulk_create_rent_charges,send_rent_reminders, metrics_overview, occupancy_metrics, arrears_aging_metrics)
 
 from tennants.views.api import (TenantListView, TenantDetailView,
                     HouseListView, HouseDetailView,
-                    FlatBuildingListView, FlatBuildingDetailView,PaymentListView, RentChargeListView, RentChargeDetailView)
+                    FlatBuildingListView, FlatBuildingDetailView, PaymentListView, PaymentDetailView,
+                    RentChargeListView, RentChargeDetailView)
 from tennants.views.auth import AdminLogoutView, user_login, AdminLogoutView, user_login
 from tennants.views import reconcile
 
@@ -32,7 +32,7 @@ urlpatterns = [
     path('api/buildings/', FlatBuildingListView.as_view(), name='building-list'),
     path('api/buildings/<int:pk>/', FlatBuildingDetailView.as_view(), name='building-detail'),
     path('api/payments/', PaymentListView.as_view(), name='payment-list'),
-    path('api/payments/<int:pk>/', PaymentDetailViewWeb.as_view(), name='payment-detail'),
+    path('api/payments/<int:pk>/', PaymentDetailView.as_view(), name='payment-detail'),
     path('api/payments/add/', PaymentCreateViewWeb.as_view(), name='payment_add'),
     path('api/flats/', FlatBuildingListView.as_view(), name='flatbuilding-list'),
     path('api/flats/<int:pk>/', FlatBuildingDetailView.as_view(), name='flatbuilding-detail'),
@@ -46,8 +46,6 @@ urlpatterns = [
     # ===========================
     # WEB INTERFACE (Template-based)
     # ===========================
-    path('', dashboard, name='dashboard'),
-    
     # Buildings
     path('buildings/', BuildingListViewWeb.as_view(), name='building_list'),
     path('buildings/add/', BuildingCreateViewWeb.as_view(), name='building_add'),
@@ -101,12 +99,7 @@ urlpatterns = [
             permanent=False
         )
     ),
-    path('metrics/', metrics_overview, name='metrics_overview'),
-    path('metrics/arrears/', metrics_arrears_aging, name='metrics_arrears_aging'),
-    path('metrics/occupancy/', metrics_occupancy, name='metrics_occupancy'),
-    path('tenants/<int:pk>/ledger/', tenant_ledger, name='tenant_ledger'),
-    path('payments/history/', payment_history, name='payment_history'),
-    path('rent-charges/history/', rent_charge_history, name='rent_charge_history'),
-    path('sms/history/', sms_history, name='sms_history'),
-    path('statements/history/', reconciliation_history, name='reconciliation_history'),
+    path("metrics/overview/", metrics_overview, name="metrics_overview"),
+    path("metrics/occupancy/", occupancy_metrics, name="occupancy_metrics"),
+    path("metrics/arrears-aging/", arrears_aging_metrics, name="arrears_aging_metrics"),
 ]

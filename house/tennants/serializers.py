@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Tenant, House, Payment, FlatBuilding, RentCharge
+from .models import BankTransaction, Tenant, House, Payment, FlatBuilding, RentCharge
 from django.contrib.auth.models import User
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
@@ -12,6 +12,8 @@ User = get_user_model()
 
 class TenantSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    is_active = serializers.BooleanField(default=True)
+    sms_notifications = serializers.BooleanField(default=True)
     owned_fields = ("house",)
 
     class Meta:
@@ -39,11 +41,21 @@ class HouseSerializer(serializers.ModelSerializer):
             self.fields['flat_building'].queryset = FlatBuilding.objects.filter(user=request.user)
 
     def validate(self, attrs):
-        building = attrs.get('flat_building')
-        if building and building.houses.count() >= building.capacity:
-            raise serializers.ValidationError(
-                f"Cannot add house. {building.building_name} can only have {building.capacity} houses."
-            )
+        building = attrs.get(
+            "flat_building",
+            self.instance.flat_building if self.instance is not None else None,
+        )
+        if building and (
+            self.instance is None or building.pk != self.instance.flat_building_id
+        ):
+            existing = building.houses.exclude(
+                pk=self.instance.pk if self.instance is not None else None
+            ).count()
+            if existing >= building.number_of_houses:
+                raise serializers.ValidationError(
+                    f"Cannot add house. {building.building_name} can only have "
+                    f"{building.number_of_houses} houses."
+                )
         return attrs
     
 class FlatBuildingSerializer(serializers.ModelSerializer):
@@ -64,6 +76,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = '__all__'
+        read_only_fields = ["bank_transaction"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -73,6 +86,10 @@ class PaymentSerializer(serializers.ModelSerializer):
                 self.fields['tenant'].queryset = Tenant.objects.filter(user=request.user)
             if 'rent_charge' in self.fields:
                 self.fields['rent_charge'].queryset = RentCharge.objects.filter(user=request.user)
+            if 'bank_transaction' in self.fields:
+                self.fields['bank_transaction'].queryset = BankTransaction.objects.filter(
+                    user=request.user
+                )
             
     
 

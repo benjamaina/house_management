@@ -4,21 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - RentFlow</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #dcf11c;
-            --primary-glow: rgba(220, 241, 28, 0.15);
-            --secondary: #39e416;
-            --blue: #3b82f6;
-            --dark: #0a0a0f;
-            --dark-elevated: #12121a;
-            --dark-card: #1a1a24;
-            --text: #ffffff;
-            --text-secondary: #b8b8c8;
-            --text-muted: #6b6b7e;
-            --border: #2a2a3a;
-            --danger: #ef4444;
+            --primary: #6366f1;
+            --primary-2: #a855f7;
+            --primary-glow: rgba(99, 102, 241, 0.18);
+            --secondary: #a855f7;
+            --blue: #38bdf8;
+            --dark: #0a0b14;
+            --dark-elevated: #13162a;
+            --dark-card: #16192e;
+            --text: #f4f5fb;
+            --text-secondary: #a7adc4;
+            --text-muted: #6b7390;
+            --border: #262b45;
+            --danger: #f43f5e;
+            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-2) 100%);
         }
 
         * {
@@ -28,7 +30,7 @@
         }
 
         body {
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
             background: var(--dark);
             min-height: 100vh;
             display: flex;
@@ -79,8 +81,8 @@
             width: 100%;
             height: 100%;
             background-image: 
-                linear-gradient(rgba(220, 241, 28, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(220, 241, 28, 0.02) 1px, transparent 1px);
+                linear-gradient(rgba(99, 102, 241, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.02) 1px, transparent 1px);
             background-size: 50px 50px;
             pointer-events: none;
             z-index: 0;
@@ -98,7 +100,7 @@
             left: 8%;
             width: 60px;
             height: 60px;
-            border: 2px solid rgba(220, 241, 28, 0.2);
+            border: 2px solid rgba(99, 102, 241, 0.2);
             transform: rotate(45deg);
         }
 
@@ -116,7 +118,7 @@
             left: 5%;
             width: 40px;
             height: 40px;
-            background: rgba(220, 241, 28, 0.08);
+            background: rgba(99, 102, 241, 0.08);
             border-radius: 8px;
             transform: rotate(15deg);
         }
@@ -164,13 +166,13 @@
             justify-content: center;
             margin-bottom: 20px;
             transform: rotate(-5deg);
-            box-shadow: 0 10px 40px rgba(220, 241, 28, 0.3);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.3);
         }
 
         .logo-icon svg {
             width: 36px;
             height: 36px;
-            fill: var(--dark);
+            fill: #ffffff;
         }
 
         .logo h1 {
@@ -268,8 +270,8 @@
         .btn-login {
             width: 100%;
             padding: 16px 24px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: var(--dark);
+            background: var(--gradient);
+            color: #ffffff;
             border: none;
             border-radius: 14px;
             font-size: 1rem;
@@ -277,12 +279,12 @@
             font-family: inherit;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 8px 30px rgba(220, 241, 28, 0.25);
+            box-shadow: 0 8px 30px rgba(99, 102, 241, 0.25);
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(220, 241, 28, 0.35);
+            box-shadow: 0 12px 40px rgba(99, 102, 241, 0.35);
         }
 
         .btn-login:active {
@@ -346,8 +348,8 @@
         }
 
         .alert-success {
-            background: rgba(57, 228, 22, 0.1);
-            border: 1px solid rgba(57, 228, 22, 0.2);
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
             color: var(--secondary);
         }
 
@@ -391,7 +393,7 @@
         <div class="login-card">
             <div class="logo">
                 <div class="logo-icon">
-                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 24 24" xmlns="https://www.w3.org/2000/svg">
                         <path d="M12 3L4 9v12h5v-7h6v7h5V9l-8-6z"/>
                     </svg>
                 </div>

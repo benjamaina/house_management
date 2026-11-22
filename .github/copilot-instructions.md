@@ -53,7 +53,7 @@ npm run preview
 
 ```bash
 cd house
-locust -f locustfile.py --host http://localhost:8000
+locust -f locustfile.py --host https://localhost:8000
 ```
 
 # Architecture

@@ -4,11 +4,13 @@ from datetime import datetime
 from django.utils import timezone
 from phonenumber_field.modelfields import PhoneNumberField
 from django.core.exceptions import ValidationError
-from django.db.models import Sum
+from django.db.models import Q, Sum
+from django.db.models.functions import Lower, Trim
 import logging
 import calendar
 from datetime import timedelta, date
 import secrets
+from decimal import Decimal
 
 
 logger = logging.getLogger(__name__)
@@ -89,13 +91,21 @@ class House(models.Model):
     def clean(self):
         if not self.flat_building_id:
             raise ValidationError("House must be associated with a flat building")
+        if self.user_id and self.flat_building.user_id and self.user_id != self.flat_building.user_id:
+            raise ValidationError({"flat_building": "Building belongs to another account."})
         if self.house_rent_amount <= 0 or self.deposit_amount < 0:
             raise ValidationError("Rent and deposit must be non-negative")
         if self.flat_building.houses.exclude(pk=self.pk).filter(house_number=self.house_number).exists():
             raise ValidationError(f"House number {self.house_number} already exists in {self.flat_building.building_name}")
         # ensure number of houses in building is not exceeded
-        if self._state.adding:  # only on create
-            current_house_count = self.flat_building.houses.count()
+        building_changed = self._state.adding
+        if not self._state.adding:
+            previous_building_id = type(self).objects.filter(pk=self.pk).values_list(
+                "flat_building_id", flat=True
+            ).first()
+            building_changed = previous_building_id != self.flat_building_id
+        if building_changed:
+            current_house_count = self.flat_building.houses.exclude(pk=self.pk).count()
             if current_house_count >= self.flat_building.number_of_houses:
                 raise ValidationError(f"Cannot add more houses to {self.flat_building.building_name}. Limit reached.")
         # ensure we cant edit the rent amount if there are active tenants
@@ -105,6 +115,8 @@ class House(models.Model):
         
 
     def save(self, *args, **kwargs):
+        if not self.user_id and self.flat_building_id:
+            self.user_id = self.flat_building.user_id
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -162,7 +174,13 @@ class Tenant(models.Model):
         total_paid = self.payments.aggregate(total=Sum('amount'))['total'] or 0
         return total_due - total_paid
 
+    @property
+    def credit_balance(self):
+        return max(Decimal("0.00"), -self.balance)
+
     def clean(self):
+        if self.user_id and self.house_id and self.house.user_id and self.user_id != self.house.user_id:
+            raise ValidationError({"house": "House belongs to another account."})
         if self.is_active and self.house_id and \
                 self.house.tenants.exclude(pk=self.pk).filter(is_active=True).exists():
             raise ValidationError(f"House {self.house} is already occupied by another tenant.")
@@ -173,9 +191,12 @@ class Tenant(models.Model):
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
+            house = None
             if self.house_id:
                 # row lock: serialises concurrent assignments to the same house
-                House.objects.select_for_update().filter(pk=self.house_id).first()
+                house = House.objects.select_for_update().filter(pk=self.house_id).first()
+            if not self.user_id and house:
+                self.user_id = house.user_id
             self.full_clean()
             super().save(*args, **kwargs)
 
@@ -224,6 +245,8 @@ class RentCharge(models.Model):
                 raise ValidationError(
                     {"amount_due": f"Amount due must match the tenant's house rent ({expected_amount})."}
                 )
+        if self.user_id and self.tenant_id and self.tenant.user_id and self.user_id != self.tenant.user_id:
+            raise ValidationError({"tenant": "Tenant belongs to another account."})
         # ensure when creating a rent charge, we dont  create a charge behind the last charge for this tenant
         if self._state.adding and self.tenant_id:
             last_charge = RentCharge.objects.filter(tenant_id=self.tenant_id).order_by('-year', '-month').first()
@@ -251,6 +274,10 @@ class RentCharge(models.Model):
     @property
     def balance(self):
         return self.amount_due - self.total_paid
+
+    @property
+    def credit_balance(self):
+        return max(Decimal("0.00"), -self.balance)
 
     @property
     def is_paid(self):
@@ -300,18 +327,60 @@ class Payment(models.Model):
     objects = AppendOnlyQuerySet.as_manager()
     _LOCKED_FIELDS = ['tenant_id', 'rent_charge_id', 'amount', 'payment_method', 'payment_reference', 'paid_at']
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bank_transaction", "rent_charge"],
+                condition=Q(bank_transaction__isnull=False),
+                name="uniq_payment_per_txn_charge",
+            ),
+        ]
 
     def clean(self):
         super().clean()
+        reference = (self.payment_reference or "").strip()
         if self.amount is None or self.amount <= 0:
             raise ValidationError({"amount": "Amount must be greater than zero."})
-        if self.payment_method != "cash" and not self.payment_reference:
+        if self.payment_method != "cash" and not reference:
             raise ValidationError({"payment_reference": "Reference required for non-cash payments"})
         if self.rent_charge_id and self.tenant_id and self.tenant_id != self.rent_charge.tenant_id:
             raise ValidationError("Payment tenant must match rent charge tenant")
+        if self.user_id and self.tenant_id and self.tenant.user_id and self.tenant.user_id != self.user_id:
+            raise ValidationError({"tenant": "Tenant belongs to another account."})
+        if self.user_id and self.rent_charge_id and self.rent_charge.user_id and self.rent_charge.user_id != self.user_id:
+            raise ValidationError({"rent_charge": "Rent charge belongs to another account."})
+        if self.bank_transaction_id:
+            if self.user_id and self.bank_transaction.user_id != self.user_id:
+                raise ValidationError({"bank_transaction": "Transaction belongs to another account."})
+            if self.bank_transaction.tenant_id and self.bank_transaction.tenant_id != self.tenant_id:
+                raise ValidationError({"bank_transaction": "Transaction is assigned to another tenant."})
+        if reference and self.user_id:
+            duplicates = (
+                Payment.objects.filter(
+                    user_id=self.user_id,
+                    payment_method=self.payment_method,
+                )
+                .annotate(normalized_reference=Lower(Trim("payment_reference")))
+                .filter(normalized_reference=reference.lower())
+                .exclude(pk=self.pk)
+            )
+            if self.bank_transaction_id:
+                duplicates = duplicates.exclude(bank_transaction_id=self.bank_transaction_id)
+            if duplicates.exists():
+                raise ValidationError({
+                    "payment_reference": (
+                        "This reference has already been used for this payment method."
+                    )
+                })
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
+            if not self.user_id and self.tenant_id:
+                self.user_id = self.tenant.user_id
+            if self.payment_reference is not None:
+                self.payment_reference = self.payment_reference.strip()
+            if self.user_id and self.payment_reference:
+                User.objects.select_for_update().filter(pk=self.user_id).first()
             if not self._state.adding:
                 original = type(self).objects.filter(pk=self.pk).values(*self._LOCKED_FIELDS).first()
                 current = {f: getattr(self, f) for f in self._LOCKED_FIELDS}
@@ -360,6 +429,12 @@ class HistoryReport(models.Model):
     def record(cls, payment):
         tenant, charge = payment.tenant, payment.rent_charge
         house = tenant.house
+        payments_through_this_entry = Payment.objects.filter(
+            rent_charge_id=charge.pk,
+        ).filter(
+            Q(paid_at__lt=payment.paid_at)
+            | Q(paid_at=payment.paid_at, pk__lte=payment.pk)
+        ).aggregate(total=Sum("amount"))["total"] or 0
         return cls.objects.create(
             user_id=payment.user_id, tenant=tenant, rent_charge=charge, payment=payment,
             tenant_name=tenant.full_name,
@@ -373,7 +448,7 @@ class HistoryReport(models.Model):
             payment_method=payment.payment_method,
             payment_reference=payment.payment_reference or "",
             paid_at=payment.paid_at,
-            balance_after=charge.balance,
+            balance_after=charge.amount_due - payments_through_this_entry,
         )
 
     def save(self, *args, **kwargs):

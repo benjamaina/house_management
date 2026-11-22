@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, models
 from django.core.cache import cache
 from tennants.models import FlatBuilding, House, Tenant
 
@@ -151,8 +151,8 @@ class HouseModelTest(TestCase):
         self.house.occupation = True
         self.house.save()
         
-        # Try to delete occupied house
-        with self.assertRaises(ValidationError):
+        # Try to delete occupied house - should raise ProtectedError due to tenant FK
+        with self.assertRaises(models.ProtectedError):
             self.house.delete()
 
     # def test_house_count_validation(self):

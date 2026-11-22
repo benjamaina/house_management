@@ -27,9 +27,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# DEBUG = "True" if os.getenv("DEBUG", "False") == "True" else False
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "True").lower() in {"true", "1", "yes"}
 REDIS_HOST = os.getenv("REDIS_URL")
+
+EMAIL_HOST = os.getenv("EMAIL_HOST", "")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in {"true", "1", "yes"}
+EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "False").lower() in {"true", "1", "yes"}
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "RentFlow <no-reply@localhost>")
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if EMAIL_HOST
+    else "django.core.mail.backends.console.EmailBackend"
+)
 
 # twilio settings
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
@@ -37,8 +49,8 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
 CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:3000",
+    "https://localhost:8080",
+    "https://127.0.0.1:3000",
     "https://benmaina.pythonanywhere.com"
 ]
 
@@ -46,8 +58,8 @@ ALLOWED_HOSTS = ["benmaina.pythonanywhere.com", "localhost", "127.0.0.1"]
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8080",
-    "http://127.0.0.1:3000",
+    "https://localhost:8080",
+    "https://127.0.0.1:3000",
     
 ]
 
@@ -169,7 +181,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',  # <- this is what gives you the UI
     ],
-    'DEFAULT_THROTTLE_RATEs': {
+    'DEFAULT_THROTTLE_RATES': {
         "auth":os.getenv("AUTH_THROTTLE_RATE", "5/minute"),
     }
 
@@ -223,7 +235,9 @@ ROOT_URLCONF = "house.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [
+            BASE_DIR / "templates",
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

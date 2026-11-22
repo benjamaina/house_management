@@ -244,7 +244,7 @@ class FlatBuildingDetailView(ApiViewMixin, generics.RetrieveUpdateDestroyAPIView
     def destroy(self, request, *args, **kwargs):
         if self.get_object().houses.exists():
             return Response({"message": "Cannot delete FlatBuilding with existing houses."},
-                            status=status.HTTP_400_BAD_REQUEST)
+                            status=status.HTTP_409_CONFLICT)
         return super().destroy(request, *args, **kwargs)
 
 

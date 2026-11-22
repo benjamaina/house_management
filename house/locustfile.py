@@ -220,4 +220,4 @@ class RentalManagementTasks(AuthenticatedTaskSet):
 class WebsiteUser(HttpUser):
     tasks = [RentalManagementTasks]
     wait_time = between(1, 3)
-    host = "http://localhost:8000"
+    host = "https://localhost:8000"

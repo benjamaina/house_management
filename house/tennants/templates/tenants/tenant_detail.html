@@ -17,7 +17,7 @@
         <a href="{% url 'tenant_edit' tenant.pk %}" class="btn btn-secondary">Edit Tenant</a>
         <a href="{% url 'payment_add' %}" class="btn btn-primary">+ Record Payment</a>
         {% url 'tenant_ledger' tenant.pk as ledger_url %}
-{% if ledger_url %}<a href="{{ ledger_url }}" class="btn btn-secondary">📒 Ledger</a>{% endif %}
+{% if ledger_url %}<a href="{{ ledger_url }}" class="btn btn-secondary"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> Ledger</a>{% endif %}
     </div>
 </div>
 
@@ -34,8 +34,10 @@
         <div class="stat-label">Monthly Rent (KES)</div>
     </div>
     <div class="stat-card">
-        <div class="stat-value" style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">{{ tenant.balance }}</div>
-        <div class="stat-label">Balance (KES)</div>
+        <div class="stat-value" style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
+            {% if tenant.balance < 0 %}KES {{ tenant.credit_balance }} credit{% else %}KES {{ tenant.balance }}{% endif %}
+        </div>
+        <div class="stat-label">{% if tenant.balance < 0 %}Credit balance{% else %}Balance (KES){% endif %}</div>
     </div>
     <div class="stat-card">
         <div class="stat-value">{{ payments.count }}</div>
@@ -111,7 +113,7 @@
 <!-- Overdue Payments Alert -->
 {% if overdue_payments %}
 <div class="alert alert-warning">
-    <strong>⚠️ Overdue Payments:</strong> This tenant has {{ overdue_payments.count }} overdue payment(s) totaling 
+    <strong><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg> Overdue Payments:</strong> This tenant has {{ overdue_payments.count }} overdue payment(s) totaling 
     KES {% for p in overdue_payments %}{{ p.balance }}{% if not forloop.last %} + {% endif %}{% endfor %}
 </div>
 {% endif %}

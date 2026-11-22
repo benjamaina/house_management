@@ -31,6 +31,7 @@ from tennants.models import FlatBuilding, House, Payment, RentCharge, Tenant
 from tennants.serializers import ForgotPasswordSerializer
 from tennants.services import reconcile as engine
 from tennants.services.sms import TwilioNotificationService, reminder_candidates
+from tennants.services import metrics 
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +151,7 @@ def dashboard(request):
         "vacant_houses": total_houses - occupied_houses,
         "active_tenants": active_tenants,
         "recent_payments": recent_payments,
+        "unpaid_charges": unpaid,
         "percent_occupied": percent_occupied,
     }
     return render(request, "dashboard.html", context)
@@ -213,7 +215,9 @@ class BuildingDetailViewWeb(LoginRequiredMixin, OwnedQuerysetMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["houses"] = self.object.houses.order_by("house_number")
+        context["houses"] = self.object.houses.filter(
+            user=self.request.user
+        ).order_by("house_number")
         return context
 
 
@@ -284,7 +288,9 @@ class HouseDetailViewWeb(LoginRequiredMixin, OwnedQuerysetMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["tenant"] = self.object.tenants.filter(is_active=True).first()
+        context["tenant"] = self.object.tenants.filter(
+            user=self.request.user, is_active=True
+        ).first()
         return context
 
 
@@ -364,9 +370,12 @@ class TenantDetailViewWeb(LoginRequiredMixin, OwnedQuerysetMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["payments"] = (
-            self.object.payments.select_related("rent_charge").order_by("-paid_at")
+            self.object.payments.filter(user=self.request.user)
+            .select_related("rent_charge").order_by("-paid_at")
         )
-        context["rent_charges"] = self.object.rent_charges.order_by("-year", "-month")
+        context["rent_charges"] = self.object.rent_charges.filter(
+            user=self.request.user
+        ).order_by("-year", "-month")
         return context
 
 
@@ -471,7 +480,9 @@ class RentChargeDetailViewWeb(LoginRequiredMixin, OwnedQuerysetMixin, DetailView
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["payments"] = self.object.payments.order_by("-paid_at")
+        context["payments"] = self.object.payments.filter(
+            user=self.request.user
+        ).order_by("-paid_at")
         return context
 
 
@@ -632,60 +643,43 @@ def send_rent_reminders(request):
         "today": timezone.localdate(),
     })
 
+
+
+@login_required
 def metrics_overview(request):
-    # query the database for metrics data
-    total_houses = House.objects.filter(user=request.user).count()
-    occupied_houses = House.objects.filter(user=request.user, occupation=True).count()
-    active_tenants = Tenant.objects.filter(user=request.user, is_active=True).count()
-    total_rent_charges = RentCharge.objects.filter(user=request.user).count()
-    total_payments = Payment.objects.filter(user=request.user).count()
+    context = metrics.overview(
+        user=request.user,
+        months=6
+    )
 
-    # prepare the context for the template
-    context = {
-        "total_houses": total_houses,
-        "occupied_houses": occupied_houses,
-        "active_tenants": active_tenants,
-        "total_rent_charges": total_rent_charges,
-        "total_payments": total_payments,
-    }
+    return render(
+        request,
+        "metrics/metrics_overview.html",
+        context
+    )
 
-    return render(request, "metrics/metrics_overview.html", context)
-    
 
-def metrics_arrears_aging(request):
-    """Render the arrears aging metrics page."""
-    return render(request, "metrics/metrics_arrears_aging.html")
-def metrics_occupancy(request):
-    """Render the occupancy metrics page."""
-    return render(request, "metrics/metrics_occupancy.html")
-def tenant_ledger(request, pk):
-    """Render the tenant ledger page."""
-    tenant = Tenant.objects.filter(user=request.user, pk=pk).first()
-    if not tenant:
-        messages.error(request, "Tenant not found.")
-        return redirect("tenant_list")
-    payments = tenant.payments.order_by("-paid_at")
-    rent_charges = tenant.rent_charges.order_by("-year", "-month")
-    return render(request, "tenants/tenant_ledger.html", {
-        "tenant": tenant,
-        "payments": payments,
-        "rent_charges": rent_charges,
-    })
-def payment_history(request):
-    """Render the payment history page."""
-    payments = Payment.objects.filter(user=request.user).select_related("tenant", "rent_charge").order_by("-paid_at")
-    return render(request, "payments/payment_history.html", {"payments": payments})
-def rent_charge_history(request):
-    """Render the rent charge history page."""
-    rent_charges = RentCharge.objects.filter(user=request.user).select_related("tenant").order_by("-year", "-month")
-    return render(request, "rentcharges/rent_charge_history.html", {"rent_charges": rent_charges})
-def sms_history(request):
-    """Render the SMS history page."""
-    # Assuming you have a model for SMS logs, replace `SMSLog` with the actual model name
-    sms_logs = []  # Replace with actual query to fetch SMS logs for the user
-    return render(request, "sms/sms_history.html", {"sms_logs": sms_logs})
-def reconciliation_history(request):
-    """Render the reconciliation history page."""
-    # Assuming you have a model for reconciliation logs, replace `ReconciliationLog` with the actual model name
-    reconciliation_logs = []  # Replace with actual query to fetch reconciliation logs for the user
-    return render(request, "reconciliation/reconciliation_history.html", {"reconciliation_logs": reconciliation_logs})
+@login_required
+def occupancy_metrics(request):
+    context = metrics.occupancy(
+        user=request.user
+    )
+
+    return render(
+        request,
+        "metrics/occupancy.html",
+        context
+    )
+
+
+@login_required
+def arrears_aging_metrics(request):
+    context = metrics.arrears_aging(
+        user=request.user
+    )
+
+    return render(
+        request,
+        "metrics/arrears_aging.html",
+        context
+    )

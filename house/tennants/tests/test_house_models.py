@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, models
 from django.core.cache import cache
 from tennants.models import FlatBuilding, House, Tenant
 
@@ -153,7 +153,7 @@ class HouseModelTest(TestCase):
         self.house.save()
         
         # Try to delete occupied house
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(models.ProtectedError):
             self.house.delete()
 
 

@@ -56,7 +56,7 @@
                 <option value="">Select rent charge</option>
                 {% for charge in form.fields.rent_charge.queryset %}
                 <option value="{{ charge.pk }}" {% if form.rent_charge.value == charge.pk|stringformat:"i" %}selected{% endif %}>
-                    {{ charge.get_month_display }} {{ charge.year }} - {{ charge.tenant.full_name }} (Balance: KES {{ charge.balance }})
+                    {{ charge.get_month_display }} {{ charge.year }} - {{ charge.tenant.full_name }} ({% if charge.balance < 0 %}Credit: KES {{ charge.credit_balance }}{% else %}Balance: KES {{ charge.balance }}{% endif %})
                 </option>
                 {% endfor %}
             </select>

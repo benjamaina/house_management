@@ -13,7 +13,7 @@
     <h1 class="page-title">All <span>Tenants</span></h1>
     <div style="display: flex; gap: 0.75rem; align-items: center;">
         <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
-            ℹ️ How It Works
+            <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg> How It Works
         </button>
         <a href="{% url 'tenant_add' %}" class="btn btn-primary">+ Add Tenant</a>
     </div>
@@ -23,7 +23,7 @@
 <div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
     <div class="help-modal-content">
         <div class="help-modal-header">
-            <h3>👥 About Tenants</h3>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> About Tenants</h3>
             <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
         </div>
         <div class="help-modal-body">
@@ -101,7 +101,7 @@
                     </td>
                     <td>{{ tenant.building_name|default:"-" }}</td>
                     <td style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
-                        KES {{ tenant.balance }}
+                        {% if tenant.balance < 0 %}Credit: KES {{ tenant.credit_balance }}{% else %}KES {{ tenant.balance }}{% endif %}
                     </td>
                     <td>
                         {% if tenant.is_active %}
@@ -114,7 +114,7 @@
                         <div class="action-buttons">
                             <a href="{% url 'tenant_detail' tenant.pk %}" class="btn-icon" title="View Details"></a>
                             {% url 'tenant_ledger' tenant.pk as ledger_url %}
-{% if ledger_url %}<a href="{{ ledger_url }}" class="btn-icon" title="Ledger">📒</a>{% endif %}
+{% if ledger_url %}<a href="{{ ledger_url }}" class="btn-icon" title="Ledger"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></a>{% endif %}
                             <a href="{% url 'tenant_edit' tenant.pk %}" class="btn-icon" title="Edit"></a>
                             <a href="{% url 'tenant_delete' tenant.pk %}" class="btn-icon danger" title="Delete"></a>
                         </div>

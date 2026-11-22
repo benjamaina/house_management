@@ -110,7 +110,7 @@
         <div class="detail-item">
             <div class="detail-label">Balance</div>
             <div class="detail-value" style="color: {% if tenant.balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
-                KES {{ tenant.balance }}
+                {% if tenant.balance < 0 %}Credit: KES {{ tenant.credit_balance }}{% else %}KES {{ tenant.balance }}{% endif %}
             </div>
         </div>
         <div class="detail-item">

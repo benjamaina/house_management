@@ -2,7 +2,7 @@
 URL configuration for house project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
+    https://docs.djangoproject.com/en/5.1/topics/https/urls/
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -17,7 +17,6 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from django.http import HttpResponse
 from rest_framework.authtoken.views import obtain_auth_token
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import views as auth_views
@@ -33,9 +32,16 @@ from tennants.views.web import landing_page, dashboard
 urlpatterns = [
     path("", landing_page, name="landing"),
     path("admin/", admin.site.urls),
-    path("api/admin/logout/", TokenRefreshView.as_view(), name="admin_logout"),
+    path(
+        "acounts/password_reset/",
+        auth_views.PasswordResetView.as_view(
+            email_template_name="registration/password_reset_email.txt",
+            html_email_template_name="registration/password_reset_email.html",
+        ),
+        name="password_reset",
+    ),
     path("acounts/", include("django.contrib.auth.urls")),
-    path("api/", include("tennants.urls")),
+    path("", include("tennants.urls")),
     path("api/token/",jwt_views.TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", jwt_views.TokenRefreshView.as_view(), name="token_refresh"),
     path("register/", register, name="register"),

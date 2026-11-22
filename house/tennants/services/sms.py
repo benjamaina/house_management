@@ -3,7 +3,7 @@ import os
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 from twilio.http.http_client import TwilioHttpClient
 from twilio.rest import Client
@@ -25,7 +25,12 @@ def reminder_candidates(tenants, today=None):
     periods = Q(year=today.year, month=today.month) | Q(year=next_month.year, month=next_month.month)
 
     charges = (
-        RentCharge.objects.filter(periods, tenant__in=tenants, reminder_sent=False)
+        RentCharge.objects.filter(
+            periods,
+            tenant__in=tenants,
+            user_id=F("tenant__user_id"),
+            reminder_sent=False,
+        )
         .select_related("tenant__house__flat_building")
     )
     results = []
@@ -45,13 +50,13 @@ class TwilioNotificationService:
     @property
     def client(self):
         if self._client is None:
-            proxy = os.environ.get("HTTP_PROXY")   # PythonAnywhere free tier needs this
-            http_client = TwilioHttpClient(
+            proxy = os.environ.get("https_PROXY")   # PythonAnywhere free tier needs this
+            https_client = TwilioHttpClient(
                 timeout=10,
-                proxy={"http": proxy, "https": proxy} if proxy else None,
+                proxy={"https": proxy, "https": proxy} if proxy else None,
             )
             self._client = Client(
-                settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN, http_client=http_client
+                settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN, https_client=https_client
             )
         return self._client
 
@@ -105,6 +110,8 @@ class TwilioNotificationService:
         tenant = rent_charge.tenant
         if not tenant.sms_notifications:
             return False, "Notifications disabled"
+        if rent_charge.balance <= 0:
+            return False, "No outstanding balance"
         success, result = self.send_sms(tenant.phone, self._generate_overdue_notice(rent_charge))
         if success:
             type(tenant).objects.filter(pk=tenant.pk).update(last_notification_sent=timezone.now())
@@ -134,6 +141,8 @@ class TwilioNotificationService:
         )
         if rent_charge.balance > 0:
             message += f"Current balance: KES {rent_charge.balance:,.2f}\n\n"
+        elif rent_charge.balance < 0:
+            message += f"Credit balance: KES {rent_charge.credit_balance:,.2f} will be applied to future rent.\n\n"
         return message + "Thank you for your prompt payment!"
 
     def _generate_payment_confirmation(self, payment):
@@ -149,6 +158,8 @@ class TwilioNotificationService:
         )
         if rent_charge.balance > 0:
             message += f"Remaining balance: KES {rent_charge.balance:,.2f}\n\n"
+        elif rent_charge.balance < 0:
+            message += f"Credit balance: KES {rent_charge.credit_balance:,.2f} will be applied to future rent.\n\n"
         else:
             message += "Your rent is now fully paid. Thank you!\n\n"
         return message

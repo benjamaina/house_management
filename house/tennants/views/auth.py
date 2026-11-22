@@ -59,7 +59,7 @@ def user_login(request):
 #     def post(self, request):
 #         # serializer = RegisterAdminSerializer(data=request.data)
 #         if not serializer.is_valid():
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#             return Response(serializer.errors, status=status.https_400_BAD_REQUEST)
 
 #         data = serializer.validated_data
 #         try:
@@ -69,8 +69,8 @@ def user_login(request):
 #                 email=data.get("email", ""),
 #             )
 #         except Exception as e:
-#             return Response({"message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-#         return Response({"message": "User registered successfully."}, status=status.HTTP_201_CREATED)
+#             return Response({"message": str(e)}, status=status.https_400_BAD_REQUEST)
+#         return Response({"message": "User registered successfully."}, status=status.https_201_CREATED)
 
 
 def register(request):

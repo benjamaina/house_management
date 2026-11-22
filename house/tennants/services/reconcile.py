@@ -10,6 +10,7 @@ from datetime import datetime, time
 from decimal import Decimal, InvalidOperation
 
 from dateutil import parser as dateparser
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import DecimalField, F, Sum, Value
 from django.db.models.functions import Coalesce
@@ -278,7 +279,10 @@ class Candidate:
 def open_charges(tenant=None, tenant_ids=None):
     """[(charge, balance)] for unpaid charges, oldest first. One query, no N+1."""
     qs = RentCharge.objects.all()
-    qs = qs.filter(tenant=tenant) if tenant else qs.filter(tenant_id__in=tenant_ids)
+    if tenant:
+        qs = qs.filter(tenant=tenant, user_id=tenant.user_id)
+    else:
+        qs = qs.filter(tenant_id__in=tenant_ids, user_id=F("tenant__user_id"))
     qs = (qs.annotate(paid=Coalesce(Sum("payments__amount"), Value(Decimal("0")),
                                     output_field=DecimalField(max_digits=12, decimal_places=2)))
             .filter(amount_due__gt=F("paid")).order_by("year", "month"))
@@ -380,6 +384,10 @@ def plan_allocation(tenant, amount):
 
 
 def _post(txn, tenant, plan):
+    if txn.payments.exists():
+        raise NoAllocation("This bank transaction has already been posted.")
+    if txn.upload.user_id != txn.user_id or tenant.user_id != txn.user_id:
+        raise NoAllocation("Bank transaction and tenant must belong to the same account.")
     method = "mobile_money" if txn.upload.source == "mpesa" else "bank_transfer"
     paid_at = timezone.make_aware(datetime.combine(txn.txn_date, time(12, 0)))
     old = (timezone.localdate() - txn.txn_date).days > 3
@@ -390,49 +398,66 @@ def _post(txn, tenant, plan):
             paid_at=paid_at, bank_transaction=txn,
         )
         payment._skip_sms = old     # don't text tenants about months-old payments
-        payment.save()
+        try:
+            with transaction.atomic():
+                payment.save()
+        except ValidationError as exc:
+            raise NoAllocation("; ".join(exc.messages)) from exc
 
 
 def attempt_auto(txn, ctx, allow_auto=True):
     ranked = rank_tenants(txn.description, txn.reference, txn.amount, ctx)
-    txn.status, txn.tenant, txn.review_note = "review", None, ""
-    txn.suggested_tenant, txn.confidence, txn.match_reason = None, 0, ""
-    if not ranked:
-        txn.review_note = "No tenant matched this payment."
-        txn.save()
-        return txn
+    with transaction.atomic():
+        txn = BankTransaction.objects.select_for_update().select_related("upload").get(pk=txn.pk)
+        if txn.status != "review" or txn.payments.exists():
+            return txn
+        if txn.upload.user_id != txn.user_id:
+            return txn
 
-    top = ranked[0]
-    second = ranked[1] if len(ranked) > 1 else None
-    if top.score >= SUGGEST_THRESHOLD:
-        txn.suggested_tenant = top.tenant
-        txn.confidence = top.score
-        txn.match_reason = "Matched on " + ", ".join(top.reasons)
+        txn.status, txn.tenant, txn.review_note = "review", None, ""
+        txn.suggested_tenant, txn.confidence, txn.match_reason = None, 0, ""
+        if not ranked:
+            txn.review_note = "No tenant matched this payment."
+            txn.save()
+            return txn
 
-    if not allow_auto:
-        txn.review_note = "Held for your confirmation (email import)."
-    elif top.score < AUTO_THRESHOLD:
-        txn.review_note = f"Not confident enough ({top.score}%)."
-    elif second and top.score - second.score < MIN_MARGIN:
-        txn.review_note = f"Could be {top.tenant.full_name} or {second.tenant.full_name}."
-    else:
-        try:
-            with transaction.atomic():
-                _post(txn, top.tenant, plan_allocation(top.tenant, txn.amount))
+        top = ranked[0]
+        second = ranked[1] if len(ranked) > 1 else None
+        if top.score >= SUGGEST_THRESHOLD:
+            txn.suggested_tenant = top.tenant
+            txn.confidence = top.score
+            txn.match_reason = "Matched on " + ", ".join(top.reasons)
+
+        if not allow_auto:
+            txn.review_note = "Held for your confirmation (email import)."
+        elif top.score < AUTO_THRESHOLD:
+            txn.review_note = f"Not confident enough ({top.score}%)."
+        elif second and top.score - second.score < MIN_MARGIN:
+            txn.review_note = f"Could be {top.tenant.full_name} or {second.tenant.full_name}."
+        else:
+            try:
+                with transaction.atomic():
+                    _post(txn, top.tenant, plan_allocation(top.tenant, txn.amount))
+            except NoAllocation as e:
+                txn.review_note = str(e)
+            except Exception:
+                logger.exception("Auto-post failed for transaction %s", txn.pk)
+                txn.review_note = "Could not post automatically."
+            else:
                 txn.status, txn.tenant = "auto", top.tenant
                 txn.resolved_at = timezone.now()
-        except NoAllocation as e:
-            txn.review_note = str(e)
-        except Exception:
-            logger.exception("Auto-post failed for transaction %s", txn.pk)
-            txn.review_note = "Could not post automatically."
-    txn.save()
+        txn.save()
     return txn
 
 
 def assign_transaction(txn, tenant, save_alias=True):
     """Landlord resolves a Fix Queue item."""
     with transaction.atomic():
+        txn = BankTransaction.objects.select_for_update().select_related("upload").get(pk=txn.pk)
+        if txn.status != "review" or txn.payments.exists():
+            raise NoAllocation("This bank transaction has already been resolved.")
+        if txn.upload.user_id != txn.user_id or tenant.user_id != txn.user_id:
+            raise NoAllocation("Bank transaction and tenant must belong to the same account.")
         if not open_charges(tenant=tenant):
             RentCharge.objects.get_or_create(
                 tenant=tenant, year=txn.txn_date.year, month=txn.txn_date.month,
@@ -463,7 +488,7 @@ def rematch_pending(user):
     pending = BankTransaction.objects.filter(user=user, status="review").select_related("upload")
     for txn in pending:
         allow = txn.upload.channel == "upload" or profile.auto_approve_email
-        attempt_auto(txn, ctx, allow_auto=allow)
+        txn = attempt_auto(txn, ctx, allow_auto=allow)
         posted += txn.status == "auto"
     return posted
 

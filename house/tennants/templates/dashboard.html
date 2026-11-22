@@ -6,7 +6,7 @@
 <div class="page-header">
     <h1 class="page-title">Welcome back, <span>{{ request.user.username }}</span></h1>
     <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
-        ℹ️ How It Works
+        <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg> How It Works
     </button>
 </div>
 
@@ -14,7 +14,7 @@
 <div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
     <div class="help-modal-content">
         <div class="help-modal-header">
-            <h3>🏠 About Dashboard</h3>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg> About Dashboard</h3>
             <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
         </div>
         <div class="help-modal-body">
@@ -45,7 +45,7 @@
 <!-- Stats Grid -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="stat-value">{{ buildings.count }}</div>
+        <div class="stat-value">{{ buildings|length }}</div>
         <div class="stat-label">Total Buildings</div>
     </div>
     <div class="stat-card">
@@ -79,9 +79,9 @@
         <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
         <a href="{% url 'house_add' %}" class="btn btn-secondary">+ Add House</a>
         <a href="{% url 'tenant_add' %}" class="btn btn-secondary">+ Add Tenant</a>
-        <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary" style="border-color: var(--primary); color: var(--primary);">⚡ Bulk Create Charges</a>
+        <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary" style="border-color: var(--primary); color: var(--primary);"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg> Bulk Create Charges</a>
         <a href="{% url 'payment_add' %}" class="btn btn-secondary">+ Record Payment</a>
-        <a href="{% url 'send_rent_reminders' %}" class="btn btn-secondary" style="border-color: var(--blue); color: var(--blue);">📱 Send Reminders</a>
+        <a href="{% url 'send_rent_reminders' %}" class="btn btn-secondary" style="border-color: var(--blue); color: var(--blue);"><svg class="icon" aria-hidden="true"><use href="#i-smartphone"/></svg> Send Reminders</a>
     </div>
 </div>
 
@@ -111,12 +111,12 @@
                     <td style="color: var(--text-primary); font-weight: 500;">{{ building.building_name }}</td>
                     <td>{{ building.address }}</td>
                     <td>{{ building.number_of_houses }}</td>
-                    <td><span class="badge badge-success">{{ building.how_many_occupied }}</span></td>
-                    <td><span class="badge badge-warning">{{ building.vacant_houses }}</span></td>
+                    <td><span class="badge badge-success">{{ building.occupied_count }}</span></td>
+                    <td><span class="badge badge-warning">{{ building.vacant_count }}</span></td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'building_detail' building.pk %}" class="btn-icon" title="View">👁</a>
-                            <a href="{% url 'building_edit' building.pk %}" class="btn-icon" title="Edit">✏️</a>
+                            <a href="{% url 'building_detail' building.pk %}" class="btn-icon" title="View"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></a>
+                            <a href="{% url 'building_edit' building.pk %}" class="btn-icon" title="Edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></a>
                         </div>
                     </td>
                 </tr>
@@ -203,8 +203,8 @@
                     <td style="color: var(--danger); font-weight: 600;">KES {{ charge.balance }}</td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'rent_charge_detail' charge.pk %}" class="btn-icon" title="View">👁</a>
-                            <a href="{% url 'payment_add' %}" class="btn-icon" title="Record Payment" style="border-color: var(--accent-green); color: var(--accent-green);">💰</a>
+                            <a href="{% url 'rent_charge_detail' charge.pk %}" class="btn-icon" title="View"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></a>
+                            <a href="{% url 'payment_add' %}" class="btn-icon" title="Record Payment" style="border-color: var(--accent-green); color: var(--accent-green);"><svg class="icon" aria-hidden="true"><use href="#i-cash"/></svg></a>
                         </div>
                     </td>
                 </tr>

@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.core.cache import cache
-from tennants.models import FlatBuilding, House, Tenant, RentPayment
+from tennants.models import FlatBuilding, House, Tenant, Payment, RentCharge
 
 
 class TenantModelTest(TestCase):
@@ -33,7 +33,6 @@ class TenantModelTest(TestCase):
             id_number="1234567890",
             house=self.house,
             is_active=True,
-            balance=0
         )
 
     def test_tenant_creation(self):
@@ -48,7 +47,7 @@ class TenantModelTest(TestCase):
     def test_tenant_properties(self):
         """Test computed properties of Tenant"""
         self.assertEqual(self.tenant.building_name, "Test Building")
-        self.assertEqual(self.tenant.building_adress, "123 Test Street")
+        self.assertEqual(self.tenant.building_address, "123 Test Street")
         self.assertEqual(self.tenant.rent, 1000.00)
         self.assertEqual(self.tenant.security_deposit, 500.00)
 
@@ -94,37 +93,49 @@ class TenantModelTest(TestCase):
         with self.assertRaises(ValidationError):
             tenant2.full_clean()
 
-    def test_update_balance_method(self):
-        """Test update_balance method"""
-        # Create rent payments
-        rent_payment1 = RentPayment.objects.create(
+    def test_balance_property(self):
+        """Test balance property calculation"""
+        # Create rent charge
+        from datetime import date
+        rent_charge = RentCharge.objects.create(
             user=self.user,
             tenant=self.tenant,
-            rent_month=1,
             year=2024,
-            rent_amount=1000,
-            amount_paid=500,
-            is_paid=False
+            month=1,
+            amount_due=1000
         )
         
-        rent_payment2 = RentPayment.objects.create(
+        # Create payment
+        payment = Payment.objects.create(
             user=self.user,
             tenant=self.tenant,
-            rent_month=2,
-            year=2024,
-            rent_amount=1000,
-            amount_paid=300,
-            is_paid=False
+            rent_charge=rent_charge,
+            amount=500,
+            payment_method='cash'
         )
         
-        # Update balance
-        new_balance = self.tenant.update_balance()
+        # Check balance: 1000 - 500 = 500
+        self.assertEqual(self.tenant.balance, 500)
         
-        # Calculate expected balance: (1000-500) + (1000-300) = 500 + 700 = 1200
-        expected_balance = (1000 - 500) + (1000 - 300)
-        self.assertEqual(new_balance, expected_balance)
-        self.tenant.refresh_from_db()
-        self.assertEqual(self.tenant.balance, expected_balance)
+        # Create another rent charge and payment
+        rent_charge2 = RentCharge.objects.create(
+            user=self.user,
+            tenant=self.tenant,
+            year=2024,
+            month=2,
+            amount_due=1000
+        )
+        
+        payment2 = Payment.objects.create(
+            user=self.user,
+            tenant=self.tenant,
+            rent_charge=rent_charge2,
+            amount=300,
+            payment_method='cash'
+        )
+        
+        # Check balance: (1000 + 1000) - (500 + 300) = 1200
+        self.assertEqual(self.tenant.balance, 1200)
 
     def test_cache_invalidation_on_tenant_save(self):
         """Test that tenant cache is invalidated on save"""

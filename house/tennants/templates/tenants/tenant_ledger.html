@@ -21,9 +21,9 @@
         </p>
     </div>
     <div class="detail-item" style="min-width:210px;">
-        <div class="detail-label">Outstanding balance</div>
+        <div class="detail-label">{% if balance < 0 %}Credit balance{% else %}Outstanding balance{% endif %}</div>
         <div class="detail-value" style="color:{% if balance > 0 %}var(--danger){% else %}var(--success){% endif %};">
-            KES {{ balance|floatformat:0|intcomma }}
+            {% if balance < 0 %}Credit: KES {{ credit_balance|floatformat:0|intcomma }}{% else %}KES {{ balance|floatformat:0|intcomma }}{% endif %}
         </div>
     </div>
 </div>
@@ -31,7 +31,7 @@
 <section class="stats-grid" aria-label="Ledger totals">
     <div class="stat-card"><div class="stat-value">KES {{ total_charged|floatformat:0|intcomma }}</div><div class="stat-label">Total charged</div></div>
     <div class="stat-card"><div class="stat-value">KES {{ total_paid|floatformat:0|intcomma }}</div><div class="stat-label">Total paid</div></div>
-    <div class="stat-card"><div class="stat-value">KES {{ balance|floatformat:0|intcomma }}</div><div class="stat-label">Current balance</div></div>
+    <div class="stat-card"><div class="stat-value">{% if balance < 0 %}Credit: KES {{ credit_balance|floatformat:0|intcomma }}{% else %}KES {{ balance|floatformat:0|intcomma }}{% endif %}</div><div class="stat-label">{% if balance < 0 %}Credit balance{% else %}Current balance{% endif %}</div></div>
 </section>
 
 <section class="card" aria-labelledby="ledger-title">

@@ -49,7 +49,7 @@
             <td>{{ charge.get_month_display }} {{ charge.year }}</td>
             <td>KES {{ charge.amount_due|floatformat:0|intcomma }}</td>
             <td>KES {{ charge.total_paid|floatformat:0|intcomma }}</td>
-            <td>KES {{ charge.balance|floatformat:0|intcomma }}</td>
+            <td>{% if charge.balance < 0 %}Credit: KES {{ charge.credit_balance|floatformat:0|intcomma }}{% else %}KES {{ charge.balance|floatformat:0|intcomma }}{% endif %}</td>
             <td>{% if charge.is_paid %}<span class="badge badge-success">Paid</span>{% elif charge.total_paid %}<span class="badge badge-warning">Partial</span>{% else %}<span class="badge badge-danger">Outstanding</span>{% endif %}</td>
         </tr>{% endfor %}</tbody>
     </table></div>

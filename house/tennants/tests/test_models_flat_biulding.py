@@ -59,6 +59,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -78,6 +79,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -106,6 +108,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -125,6 +128,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -145,6 +149,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -161,6 +166,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -182,6 +188,7 @@ class FlatBuildingModelTest(TestCase):
         house = House.objects.create(
             flat_building=self.flat_building,
             house_number="101",
+            house_rent_amount=1000,
             occupation=True
         )
         
@@ -191,14 +198,7 @@ class FlatBuildingModelTest(TestCase):
 
     def test_successful_delete_flat_building(self):
         """Test successful deletion of building without occupied houses"""
-        # Create vacant house
-        House.objects.create(
-            flat_building=self.flat_building,
-            house_number="101",
-            occupation=False
-        )
-        
-        # Should be able to delete
+        # Building has no houses, should be able to delete
         self.flat_building.delete()
         self.assertEqual(FlatBuilding.objects.count(), 0)
 
@@ -217,10 +217,10 @@ class FlatBuildingModelTest(TestCase):
     def test_mixed_occupied_vacant_houses(self):
         """Test counting with mixed occupied and vacant houses"""
         # Create some occupied and some vacant houses
-        House.objects.create(flat_building=self.flat_building, house_number="101", occupation=True)
-        House.objects.create(flat_building=self.flat_building, house_number="102", occupation=False)
-        House.objects.create(flat_building=self.flat_building, house_number="103", occupation=True)
-        House.objects.create(flat_building=self.flat_building, house_number="104", occupation=False)
+        House.objects.create(flat_building=self.flat_building, house_number="101", house_rent_amount=1000, occupation=True)
+        House.objects.create(flat_building=self.flat_building, house_number="102", house_rent_amount=1000, occupation=False)
+        House.objects.create(flat_building=self.flat_building, house_number="103", house_rent_amount=1000, occupation=True)
+        House.objects.create(flat_building=self.flat_building, house_number="104", house_rent_amount=1000, occupation=False)
         
         # Refresh and verify counts
         self.flat_building.refresh_from_db()

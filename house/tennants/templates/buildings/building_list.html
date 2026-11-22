@@ -13,7 +13,7 @@
     <h1 class="page-title">Your <span>Buildings</span></h1>
     <div style="display: flex; gap: 0.75rem; align-items: center;">
         <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
-            ℹ️ How It Works
+            <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg> How It Works
         </button>
         <a href="{% url 'building_add' %}" class="btn btn-primary">+ Add Building</a>
     </div>
@@ -23,7 +23,7 @@
 <div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
     <div class="help-modal-content">
         <div class="help-modal-header">
-            <h3>🏢 About Buildings</h3>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-building"/></svg> About Buildings</h3>
             <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
         </div>
         <div class="help-modal-body">
@@ -80,9 +80,9 @@
                     <td>{{ building.tenant_count }}</td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'building_detail' building.pk %}" class="btn-icon" title="View Details">👁</a>
-                            <a href="{% url 'building_edit' building.pk %}" class="btn-icon" title="Edit">✏️</a>
-                            <a href="{% url 'building_delete' building.pk %}" class="btn-icon danger" title="Delete">🗑</a>
+                            <a href="{% url 'building_detail' building.pk %}" class="btn-icon" title="View Details"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></a>
+                            <a href="{% url 'building_edit' building.pk %}" class="btn-icon" title="Edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></a>
+                            <a href="{% url 'building_delete' building.pk %}" class="btn-icon danger" title="Delete"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></a>
                         </div>
                     </td>
                 </tr>

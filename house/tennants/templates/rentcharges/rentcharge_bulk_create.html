@@ -14,7 +14,7 @@
 <div class="page-header">
     <h1 class="page-title">Bulk Create <span>Rent Charges</span></h1>
     <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
-        ℹ️ How It Works
+        <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg> How It Works
     </button>
 </div>
 
@@ -22,7 +22,7 @@
 <div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
     <div class="help-modal-content">
         <div class="help-modal-header">
-            <h3>⚡ About Bulk Create</h3>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg> About Bulk Create</h3>
             <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
         </div>
         <div class="help-modal-body">
@@ -91,7 +91,7 @@
         <!-- Preview Section -->
         <div class="preview-section" style="margin-top: 2rem; padding: 1.5rem; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px;">
             <h3 style="color: var(--accent-yellow); margin-bottom: 1rem; font-size: 1.1rem;">
-                📋 Active Tenants ({{ active_tenants_count }})
+                <svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg> Active Tenants ({{ active_tenants_count }})
             </h3>
             
             {% if active_tenants %}
@@ -166,7 +166,7 @@
         <!-- Warning for existing charges -->
         <div class="warning-section" style="margin-top: 1.5rem; padding: 1rem 1.5rem; background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px;">
             <p style="color: var(--accent-yellow); font-size: 0.9rem;">
-                ⚠️ <strong>Note:</strong> Rent charges that already exist for the selected month/year will be skipped to avoid duplicates.
+                <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg> <strong>Note:</strong> Rent charges that already exist for the selected month/year will be skipped to avoid duplicates.
             </p>
         </div>
         
@@ -174,7 +174,7 @@
             <a href="{% url 'rent_charge_list' %}" class="btn btn-secondary">Cancel</a>
             {% if active_tenants %}
             <button type="submit" class="btn btn-primary">
-                🚀 Generate Rent Charges
+                <svg class="icon" aria-hidden="true"><use href="#i-rocket"/></svg> Generate Rent Charges
             </button>
             {% endif %}
         </div>

@@ -13,10 +13,10 @@
     <h1 class="page-title">Rent <span>Charges</span></h1>
     <div style="display: flex; gap: 0.75rem; align-items: center;">
         <button type="button" class="btn-help" onclick="document.getElementById('helpModal').style.display='flex'">
-            ℹ️ How It Works
+            <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg> How It Works
         </button>
-        <a href="{% url 'send_rent_reminders' %}" class="btn btn-secondary" style="border-color: var(--blue); color: var(--blue);">📱 Send Reminders</a>
-        <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary" style="border-color: var(--primary); color: var(--primary);">⚡ Bulk Create</a>
+        <a href="{% url 'send_rent_reminders' %}" class="btn btn-secondary" style="border-color: var(--blue); color: var(--blue);"><svg class="icon" aria-hidden="true"><use href="#i-smartphone"/></svg> Send Reminders</a>
+        <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary" style="border-color: var(--primary); color: var(--primary);"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg> Bulk Create</a>
         <a href="{% url 'rent_charge_add' %}" class="btn btn-primary">+ Create Charge</a>
     </div>
 </div>
@@ -25,7 +25,7 @@
 <div id="helpModal" class="help-modal" onclick="if(event.target===this)this.style.display='none'">
     <div class="help-modal-content">
         <div class="help-modal-header">
-            <h3>📋 About Rent Charges</h3>
+            <h3><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg> About Rent Charges</h3>
             <button onclick="document.getElementById('helpModal').style.display='none'" class="help-modal-close">&times;</button>
         </div>
         <div class="help-modal-body">
@@ -106,10 +106,12 @@
                     <td>KES {{ charge.amount_due }}</td>
                     <td style="color: var(--success);">KES {{ charge.total_paid }}</td>
                     <td style="color: {% if charge.balance > 0 %}var(--danger){% else %}var(--success){% endif %}; font-weight: 600;">
-                        KES {{ charge.balance }}
+                        {% if charge.balance < 0 %}Credit: KES {{ charge.credit_balance }}{% else %}KES {{ charge.balance }}{% endif %}
                     </td>
                     <td>
-                        {% if charge.is_paid %}
+                        {% if charge.balance < 0 %}
+                        <span class="badge badge-success">Credit</span>
+                        {% elif charge.is_paid %}
                         <span class="badge badge-success">Fully Paid</span>
                         {% elif charge.total_paid > 0 %}
                         <span class="badge badge-warning">Partial</span>
@@ -126,9 +128,9 @@
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{% url 'rent_charge_detail' charge.pk %}" class="btn-icon" title="View">👁</a>
-                            <a href="{% url 'rent_charge_edit' charge.pk %}" class="btn-icon" title="Edit">✏️</a>
-                            <a href="{% url 'payment_add' %}" class="btn-icon" title="Record Payment" style="border-color: var(--success); color: var(--success);">💰</a>
+                            <a href="{% url 'rent_charge_detail' charge.pk %}" class="btn-icon" title="View"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></a>
+                            <a href="{% url 'rent_charge_edit' charge.pk %}" class="btn-icon" title="Edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></a>
+                            <a href="{% url 'payment_add' %}" class="btn-icon" title="Record Payment" style="border-color: var(--success); color: var(--success);"><svg class="icon" aria-hidden="true"><use href="#i-cash"/></svg></a>
                         </div>
                     </td>
                 </tr>
@@ -138,12 +140,12 @@
     </div>
     {% else %}
     <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-icon"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg></div>
         <h3>No rent charges created</h3>
         <p>Create rent charges to track what tenants owe</p>
         <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1rem;">
             <a href="{% url 'rent_charge_add' %}" class="btn btn-primary">+ Create Charge</a>
-            <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary">⚡ Bulk Create</a>
+            <a href="{% url 'rent_charge_bulk_create' %}" class="btn btn-secondary"><svg class="icon" aria-hidden="true"><use href="#i-zap"/></svg> Bulk Create</a>
         </div>
     </div>
     {% endif %}
